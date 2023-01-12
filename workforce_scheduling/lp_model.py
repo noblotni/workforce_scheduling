@@ -3,6 +3,8 @@ import pulp as pl
 
 # Small constant to avoid divisions by 0
 DELTA = 0.001
+# Small constant for strict inequalities
+EPSILON = 0.001
 
 
 def create_lp_model(data):
@@ -35,6 +37,7 @@ def create_lp_model(data):
     )
     model = add_constraints(
         model=model,
+        data=data,
         variables=variables,
         instance=instance,
         nb_workers=nb_workers,
@@ -48,40 +51,103 @@ def create_lp_model(data):
 def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: int):
     """Create the variables of the model."""
     # Planification tensor
-    x = np.empty((nb_workers, nb_comp, nb_projects, nb_days), dtype=object)
+    x = np.array(
+        [
+            [
+                [
+                    [
+                        pl.LpVariable(
+                            "x_" + str(i) + "," + str(j) + "," + str(k) + "," + str(l),
+                            lowBound=0,
+                            cat=pl.LpBinary,
+                        )
+                        for l in range(nb_days)
+                    ]
+                    for k in range(nb_projects)
+                ]
+                for j in range(nb_comp)
+            ]
+            for i in range(nb_workers)
+        ],
+        dtype=object,
+    )
     # Epsilon variables to deal with absolute values
-    eps_plus = np.empty((nb_workers, nb_comp, nb_projects, nb_days), dtype=object)
-    eps_minus = np.empty((nb_workers, nb_comp, nb_projects, nb_days), dtype=object)
-    for i in range(nb_workers):
-        for j in range(nb_comp):
-            for k in range(nb_projects):
-                for l in range(nb_days):
-                    x[i, j, k, l] = pl.LpVariable(
-                        "x_" + str(i) + str(j) + str(k) + str(l),
-                        lowBound=0,
-                        cat=pl.LpBinary,
-                    )
-                    eps_plus[i, j, k, l] = pl.LpVariable(
-                        "eps_plus_" + str(i) + str(j) + str(k) + str(l),
-                        lowBound=0,
-                        cat=pl.LpBinary,
-                    )
-                    eps_minus[i, j, k, l] = pl.LpVariable(
-                        "eps_minus_" + str(i) + str(j) + str(k) + str(l),
-                        lowBound=0,
-                        cat=pl.LpBinary,
-                    )
+    eps_plus = np.array(
+        [
+            [
+                [
+                    [
+                        pl.LpVariable(
+                            "eps_plus_"
+                            + str(i)
+                            + ","
+                            + str(j)
+                            + ","
+                            + str(k)
+                            + ","
+                            + str(l),
+                            lowBound=0,
+                            cat=pl.LpBinary,
+                        )
+                        for l in range(nb_days)
+                    ]
+                    for k in range(nb_projects)
+                ]
+                for j in range(nb_comp)
+            ]
+            for i in range(nb_workers)
+        ],
+        dtype=object,
+    )
+    eps_minus = np.array(
+        [
+            [
+                [
+                    [
+                        pl.LpVariable(
+                            "eps_minus_"
+                            + str(i)
+                            + ","
+                            + str(j)
+                            + ","
+                            + str(k)
+                            + ","
+                            + str(l),
+                            lowBound=0,
+                            cat=pl.LpBinary,
+                        )
+                        for l in range(nb_days)
+                    ]
+                    for k in range(nb_projects)
+                ]
+                for j in range(nb_comp)
+            ]
+            for i in range(nb_workers)
+        ],
+        dtype=object,
+    )
     # Matrix to store projects realization
-    y = np.empty((nb_projects, nb_days), dtype=object)
-    for i in range(nb_projects):
-        for j in range(nb_days):
-            y[i, j] = pl.LpVariable("y_" + str(i) + str(j), lowBound=0, cat=pl.LpBinary)
-
+    y = np.array(
+        [
+            [
+                pl.LpVariable("y_" + str(i) + "," + str(j), lowBound=0, cat=pl.LpBinary)
+                for j in range(nb_days)
+            ]
+            for i in range(nb_projects)
+        ],
+        dtype=object,
+    )
     # Matrix to store participation of workers in the projects
-    z = np.empty((nb_workers, nb_projects), dtype=object)
-    for i in range(nb_workers):
-        for j in range(nb_projects):
-            z[i, j] = pl.LpVariable("z_" + str(i) + str(j), lowBound=0, cat=pl.LpBinary)
+    z = np.array(
+        [
+            [
+                pl.LpVariable("z_" + str(i) + "," + str(j), lowBound=0, cat=pl.LpBinary)
+                for j in range(nb_projects)
+            ]
+            for i in range(nb_workers)
+        ],
+        dtype=object,
+    )
     variables = {"x": x, "y": y, "z": z, "eps_plus": eps_plus, "eps_minus": eps_minus}
     return variables
 
@@ -160,6 +226,7 @@ def add_objective_function(
 
 def add_constraints(
     model,
+    data: dict,
     variables: dict,
     instance: dict,
     nb_days: int,
@@ -169,8 +236,17 @@ def add_constraints(
 ):
     """Build constraints and add them to the model."""
     # Each day, a worker can be affected to one task at most
-    for l in range(nb_days):
-        model += np.sum(variables["x"][:, :, :, l]) <= 1, "one_task_a_day_" + str(l)
+    for i in range(nb_workers):
+        for l in range(nb_days):
+            model += np.sum(variables["x"][i, :, :, l]) <= 1, "one_task_a_day_" + str(
+                i
+            ) + "," + str(l)
+
+    # An employee must work when he is at the office
+    for i in range(nb_workers):
+        model += np.sum(variables["x"][i, :, :, :]) == nb_days - len(
+            data["staff"][i]["vacations"]
+        ), "must_work_" + str(i)
 
     for i in range(nb_workers):
         for j in range(nb_comp):
@@ -213,14 +289,13 @@ def add_constraints(
     # A project is over only if all the tasks are done
     for k in range(nb_projects):
         for d in range(nb_days):
-            coeffs = np.dot(
-                (1 / (DELTA + instance["work_matrix"][k, :])).reshape((nb_comp, 1)),
-                np.ones((1, d)),
+            model += np.sum(variables["x"][:, :, k, :d]) - variables["y"][
+                k, d
+            ] <= np.sum(instance["work_matrix"][k, :]) - EPSILON, "project_done_" + str(
+                k
+            ) + "," + str(
+                d
             )
-            model += np.sum(
-                np.array([coeffs for _ in range(nb_workers)])
-                * variables["x"][:, :, k, :d]
-            ) <= variables["y"][k, d], "project_done_" + str(k) + "," + str(d)
 
     # An employee participates in a project if he makes at least one task of the project
     for i in range(nb_workers):
