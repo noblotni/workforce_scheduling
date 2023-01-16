@@ -20,6 +20,7 @@ def main(args):
     with open(args.data_path, "r") as file:
         data = json.load(file)
     model, objectives = create_lp_model(data)
+    print(objectives["profit"])
     model_json = {"constraints": model.to_dict(), "objectives": objectives}
     logging.info("Model created")
     if not (MODELS_PATH.exists()):
