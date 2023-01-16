@@ -28,8 +28,7 @@ def create_lp_model(data):
     variables = create_variables(
         nb_days=nb_days, nb_workers=nb_workers, nb_projects=nb_projects, nb_comp=nb_comp
     )
-    model = add_objective_function(
-        model=model,
+    objectives = build_objective_functions(
         variables=variables,
         instance=instance,
         nb_projects=nb_projects,
@@ -37,7 +36,6 @@ def create_lp_model(data):
     )
     model = add_constraints(
         model=model,
-        data=data,
         variables=variables,
         instance=instance,
         nb_workers=nb_workers,
@@ -45,7 +43,7 @@ def create_lp_model(data):
         nb_comp=nb_comp,
         nb_days=nb_days,
     )
-    return model
+    return model, objectives
 
 
 def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: int):
@@ -195,8 +193,7 @@ def build_problem_instance(
     return instance
 
 
-def add_objective_function(
-    model,
+def build_objective_functions(
     variables: dict,
     instance: dict,
     nb_days: int,
@@ -213,20 +210,23 @@ def add_objective_function(
             - instance["deadlines"][k]
             - np.sum(variables["y"][k, nb_days - instance["deadlines"][k] - 1 :])
         )
-    # Number of projects done
+    # Number of different projects done per employee
     projects_done = np.sum(variables["z"])
     # Work on consecutive days on the same task
     cons_days = np.sum(
         variables["eps_plus"][:, :, :, : nb_days - 1]
         + variables["eps_minus"][:, :, :, : nb_days - 1]
     )
-    model += -1 / 2 * profit + 1 / 2 * projects_done + 1 / 2 * cons_days
-    return model
+    objectives = {
+        "profit": profit.to_dict(),
+        "projects_done": projects_done.to_dict(),
+        "cons_days": cons_days.to_dict(),
+    }
+    return objectives
 
 
 def add_constraints(
     model,
-    data: dict,
     variables: dict,
     instance: dict,
     nb_days: int,
@@ -235,7 +235,7 @@ def add_constraints(
     nb_workers: int,
 ):
     """Build constraints and add them to the model."""
-    # Each day, a worker can be affected to one task at most
+    # Each day, a worker can be affected to at most one task
     for i in range(nb_workers):
         for l in range(nb_days):
             model += np.sum(variables["x"][i, :, :, l]) <= 1, "one_task_a_day_" + str(
@@ -244,9 +244,7 @@ def add_constraints(
 
     # An employee must work when he is at the office
     for i in range(nb_workers):
-        model += np.sum(variables["x"][i, :, :, :]) == nb_days - len(
-            data["staff"][i]["vacations"]
-        ), "must_work_" + str(i)
+        model += np.sum(variables["x"][i, :, :, :]) >= 1, "must_work_" + str(i)
 
     for i in range(nb_workers):
         for j in range(nb_comp):

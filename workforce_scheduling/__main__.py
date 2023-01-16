@@ -1,4 +1,5 @@
 """Entry point of workforce_scheduling."""
+import argparse
 import logging
 import json
 from pathlib import Path
@@ -13,21 +14,31 @@ DATA_PATH = Path("./data")
 MODELS_PATH = Path("./models")
 
 
-def main():
+def main(args):
+    """Launch the workforce scheduling algorithm."""
     print("WORKFORCE SCHEDULING")
-    with open(DATA_PATH / "toy_instance.json", "r") as file:
+    with open(args.data_path, "r") as file:
         data = json.load(file)
-    model = create_lp_model(data)
+    model, objectives = create_lp_model(data)
+    model_json = {"constraints": model.to_dict(), "objectives": objectives}
     logging.info("Model created")
     if not (MODELS_PATH.exists()):
         MODELS_PATH.mkdir()
-    with open(MODELS_PATH / "toy_instance_model.json", "w") as file:
-        json.dump(model.to_dict(), file)
+    with open(
+        MODELS_PATH / "{}_model.json".format(args.data_path.name.split(".")[0]), "w"
+    ) as file:
+        json.dump(model_json, file)
     logging.info("Model saved")
-    model.solve(solver=pl.GUROBI_CMD())
-    for v in model.variables():
-        print(v.name, "=", v.varValue)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser("Workforce scheduling")
+    parser.add_argument(
+        "data_path", help="Path to the data file. Must be a json file.", type=Path
+    )
+    args = parser.parse_args()
+    print(args.data_path.name)
+    # if not re.match(r"*.json", str(args.data_path)):
+    #    logging.error("data-path must be a JSON file.")
+    # else:
+    main(args)
