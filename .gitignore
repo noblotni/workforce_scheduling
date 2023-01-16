@@ -1,5 +1,7 @@
 # data folder
 data/
+# lp models folder
+models/
 # experiments folder
 experiments/
 
