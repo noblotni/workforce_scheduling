@@ -22,15 +22,22 @@ NB_EPS2 = 10
 def epsilon_constraints(model: pl.LpProblem, objectives: dict):
     """Apply the epsilon constraints method on the model."""
     eps0_values = np.linspace(EPS0_MIN, EPS0_MAX, NB_EPS0)
-    eps1_values = np.linspace(EPS1_MIN, EPS1_MAX, NB_EPS0)
-    eps2_values = np.linspace(EPS2_MIN, EPS2_MAX, NB_EPS0)
+    eps1_values = np.linspace(EPS1_MIN, EPS1_MAX, NB_EPS1)
+    eps2_values = np.linspace(EPS2_MIN, EPS2_MAX, NB_EPS2)
     pareto_front = []
-    epsvalues = {0: eps0_values, 1: eps1_values, 2: eps2_values}
-    objectives_func = {
-        0: pl.LpAffineExpression(objectives["profit"]),
-        1: pl.LpAffineExpression(objectives["projects_done"]),
-        2: pl.LpAffineExpression(objectives["cons_days"]),
-    }
+    epsvalues = [eps0_values, eps1_values, eps2_values]
+    var_dict = model.variablesDict()
+    objectives_func = [
+        pl.LpAffineExpression(
+            [(var_dict[d["name"]], d["value"]) for d in objectives["profit"]]
+        ),
+        pl.LpAffineExpression(
+            [(var_dict[d["name"]], d["value"]) for d in objectives["projects_done"]]
+        ),
+        pl.LpAffineExpression(
+            [(var_dict[d["name"]], d["value"]) for d in objectives["cons_days"]]
+        ),
+    ]
     # Optimize the first objective function
     pareto_front = find_pareto(
         optim_ind=0,
@@ -98,11 +105,8 @@ def find_pareto(
             # Set the objective function
             model.objective = objectives_func[optim_ind]
             # Add the epsilon constraints
-            model.constraints["epsilon_1"] = None
-            model += objectives_func[first_ind] <= epsilon1, "epsilon1"
-            model.constraints["epsilon2"] = None
-            model += objectives_func[second_ind] <= epsilon2, "epsilon2"
-
+            model.constraints["epsilon_1"] = objectives_func[first_ind] <= epsilon1
+            model.constraints["epsilon_2"] = objectives_func[second_ind] <= epsilon2
             # Solve the new model
             model.solve(solver=pl.GUROBI_CMD())
             pareto_front.append(

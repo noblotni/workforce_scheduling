@@ -1,10 +1,11 @@
 """Entry point of workforce_scheduling."""
 import argparse
 import logging
+import re
 import json
 from pathlib import Path
-import pulp as pl
 from workforce_scheduling.lp_model import create_lp_model
+from workforce_scheduling.optim import epsilon_constraints
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,7 +21,6 @@ def main(args):
     with open(args.data_path, "r") as file:
         data = json.load(file)
     model, objectives = create_lp_model(data)
-    print(objectives["profit"])
     model_json = {"constraints": model.to_dict(), "objectives": objectives}
     logging.info("Model created")
     if not (MODELS_PATH.exists()):
@@ -30,6 +30,8 @@ def main(args):
     ) as file:
         json.dump(model_json, file)
     logging.info("Model saved")
+    pareto_front = epsilon_constraints(model=model, objectives=objectives)
+    print(pareto_front)
 
 
 if __name__ == "__main__":
@@ -38,8 +40,8 @@ if __name__ == "__main__":
         "data_path", help="Path to the data file. Must be a json file.", type=Path
     )
     args = parser.parse_args()
-    print(args.data_path.name)
-    # if not re.match(r"*.json", str(args.data_path)):
-    #    logging.error("data-path must be a JSON file.")
-    # else:
-    main(args)
+
+    if not re.search(r"\.json$", str(args.data_path)):
+        logging.error("data-path must be a JSON file.")
+    else:
+        main(args)
