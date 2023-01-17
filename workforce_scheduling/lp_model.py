@@ -196,13 +196,15 @@ def add_constraints(
     # Each day, a worker can be affected to at most one task
     for i in range(nb_workers):
         for l in range(nb_days):
-            model += np.sum(variables["x"][i, :, :, l]) <= 1, "one_task_a_day_" + str(
-                i
-            ) + "," + str(l)
+            model += pl.lpSum(
+                list(variables["x"][i, :, :, l].flatten())
+            ) <= 1, "one_task_a_day_" + str(i) + "," + str(l)
 
     # An employee must work when he is at the office
     for i in range(nb_workers):
-        model += np.sum(variables["x"][i, :, :, :]) >= 1, "must_work_" + str(i)
+        model += pl.lpSum(
+            list(variables["x"][i, :, :, :].flatten())
+        ) >= 1, "must_work_" + str(i)
 
     for i in range(nb_workers):
         for j in range(nb_comp):
@@ -238,21 +240,23 @@ def add_constraints(
     # A project can be made only once
     for k in range(nb_projects):
         for j in range(nb_comp):
-            model += np.sum(variables["x"][:, j, k, :]) <= instance["work_matrix"][
-                k, j
-            ], "project_once_" + str(k) + "," + str(j)
+            model += pl.lpSum(list(variables["x"][:, j, k, :].flatten())) <= instance[
+                "work_matrix"
+            ][k, j], "project_once_" + str(k) + "," + str(j)
 
     # A project is over only if all the tasks are done
     for k in range(nb_projects):
         for d in range(nb_days):
-            model += np.sum(variables["x"][:, :, k, :d]) - variables["y"][
-                k, d
-            ] <= np.sum(instance["work_matrix"][k, :]) - EPSILON, "project_done_" + str(
+            model += pl.lpSum(list(variables["x"][:, :, k, :d].flatten())) - variables[
+                "y"
+            ][k, d] <= np.sum(
+                instance["work_matrix"][k, :]
+            ) - EPSILON, "project_done_" + str(
                 k
             ) + "," + str(
                 d
             )
-            model += np.sum(variables["x"][:, :, :, :d]) / np.sum(
+            model += pl.lpSum(list(variables["x"][:, :, :, :d].flatten())) / np.sum(
                 instance["work_matrix"][k, :]
             ) + EPSILON - variables["y"][k, d] >= 0, "project_not_done_" + str(
                 k
@@ -263,8 +267,12 @@ def add_constraints(
     # An employee participates in a project if he makes at least one task of the project
     for i in range(nb_workers):
         for k in range(nb_projects):
-            model += 1 / instance["big_constant"] * np.sum(
-                variables["x"][i, :, k, :]
+            model += pl.lpSum(
+                list(
+                    (
+                        1 / instance["big_constant"] * variables["x"][i, :, k, :]
+                    ).flatten()
+                )
             ) <= variables["z"][i, k], "participation_" + str(i) + "," + str(k)
             model += np.sum(variables["x"][i, :, k, :]) >= variables["z"][
                 i, k
