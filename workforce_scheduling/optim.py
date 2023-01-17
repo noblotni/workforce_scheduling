@@ -10,13 +10,13 @@ import numpy as np
 # Constants
 EPS0_MAX = -5
 EPS0_MIN = -30
-NB_EPS0 = 10
+NB_EPS0 = 20
 EPS1_MAX = 100
 EPS1_MIN = 1
-NB_EPS1 = 10
+NB_EPS1 = 20
 EPS2_MAX = 100
 EPS2_MIN = 1
-NB_EPS2 = 10
+NB_EPS2 = 20
 
 
 def epsilon_constraints(model: pl.LpProblem, objectives: dict):

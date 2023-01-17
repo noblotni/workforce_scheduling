@@ -4,6 +4,7 @@ import logging
 import re
 import json
 from pathlib import Path
+import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
 
@@ -31,7 +32,16 @@ def main(args):
         json.dump(model_json, file)
     logging.info("Model saved")
     pareto_front = epsilon_constraints(model=model, objectives=objectives)
-    print(pareto_front)
+    # Store the results in a dataframe
+    pareto_df = pd.DataFrame(
+        data=pareto_front, columns=["profit", "projects_done", "cons_days"]
+    )
+    # Remove duplicates
+    pareto_df = pareto_df.drop_duplicates()
+    # Save to csv
+    pareto_df.to_csv(
+        Path("./models/{}_pareto.csv".format(args.data_path.name.split(".")[0]))
+    )
 
 
 if __name__ == "__main__":
