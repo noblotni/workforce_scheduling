@@ -23,12 +23,13 @@ def create_lp_model(data):
         nb_days=nb_days,
     )
     # Init model as a minimization problem
-    model = pl.LpProblem(name="Workforce_scheduling", sense=pl.LpMinimize)
+    model = pl.LpProblem(name="Workforce_scheduling", sense=pl.LpMaximize)
     # Variables
     variables = create_variables(
         nb_days=nb_days, nb_workers=nb_workers, nb_projects=nb_projects, nb_comp=nb_comp
     )
-    objectives = build_objective_functions(
+    model, objectives = build_objective_functions(
+        model=model,
         variables=variables,
         instance=instance,
         nb_projects=nb_projects,
@@ -43,7 +44,13 @@ def create_lp_model(data):
         nb_comp=nb_comp,
         nb_days=nb_days,
     )
-    return model, objectives
+    dimensions = {
+        "nb_days": nb_days,
+        "nb_projects": nb_projects,
+        "nb_comp": nb_comp,
+        "nb_workers": nb_workers,
+    }
+    return model, objectives, dimensions
 
 
 def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: int):
@@ -194,12 +201,13 @@ def build_problem_instance(
 
 
 def build_objective_functions(
+    model: pl.LpProblem,
     variables: dict,
     instance: dict,
     nb_days: int,
     nb_projects: int,
 ):
-    """Build the objective objective and add it to the model."""
+    """Build the objective functions and add the profit to the model."""
     # Profit of the company
     profit = None
     for k in range(nb_projects):
@@ -222,7 +230,8 @@ def build_objective_functions(
         "projects_done": projects_done.to_dict(),
         "cons_days": cons_days.to_dict(),
     }
-    return objectives
+    model += profit, "objective_func"
+    return model, objectives
 
 
 def add_constraints(

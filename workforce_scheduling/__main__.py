@@ -21,8 +21,12 @@ def main(args):
     print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
         data = json.load(file)
-    model, objectives = create_lp_model(data)
-    model_json = {"constraints": model.to_dict(), "objectives": objectives}
+    model, objectives, dimensions = create_lp_model(data)
+    model_json = {
+        "constraints": model.to_dict(),
+        "objectives": objectives,
+        "dimensions": dimensions,
+    }
     logging.info("Model created")
     if not (MODELS_PATH.exists()):
         MODELS_PATH.mkdir()
@@ -31,7 +35,9 @@ def main(args):
     ) as file:
         json.dump(model_json, file)
     logging.info("Model saved")
-    pareto_front = epsilon_constraints(model=model, objectives=objectives)
+    pareto_front = epsilon_constraints(
+        model=model, objectives=objectives, dimensions=dimensions
+    )
     # Store the results in a dataframe
     pareto_df = pd.DataFrame(
         data=pareto_front, columns=["profit", "projects_done", "cons_days"]
