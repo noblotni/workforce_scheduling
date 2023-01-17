@@ -23,7 +23,10 @@ def epsilon_constraints(model: pl.LpProblem, objectives: dict, dimensions: dict)
             [(var_dict[d["name"]], d["value"]) for d in objectives["projects_done"]]
         ),
         pl.LpAffineExpression(
-            [(var_dict[d["name"]], d["value"]) for d in objectives["cons_days"]]
+            [
+                (var_dict[d["name"]], d["value"])
+                for d in objectives["long_proj_duration"]
+            ]
         ),
     ]
     # Optimize the first objective function
@@ -54,25 +57,15 @@ def find_pareto(
         - dimensions (dict): dimensions of the problem
         - pareto_front (list): list of solutions on the pareto surface
     """
-    eps1_values = np.linspace(
-        0, dimensions["nb_workers"] * dimensions["nb_projects"] + 1, NB_EPS1
-    )
-    eps2_values = np.linspace(
-        0,
-        (dimensions["nb_days"] - 1)
-        * dimensions["nb_projects"]
-        * dimensions["nb_comp"]
-        * dimensions["nb_workers"]
-        + 1,
-        NB_EPS2,
-    )
+    eps1_values = np.arange(0, dimensions["nb_workers"] * dimensions["nb_projects"] + 1)
+    eps2_values = np.arange(0, dimensions["nb_days"])
     for epsilon1 in eps1_values:
         for epsilon2 in eps2_values:
             # Reset the status
             model.status = pl.LpStatusNotSolved
             # Add the epsilon constraints
-            model.constraints["epsilon_1"] = objectives_func[1] <= epsilon1
-            model.constraints["epsilon_2"] = objectives_func[2] <= epsilon2
+            model.constraints["epsilon_1"] = objectives_func[1] >= epsilon1
+            model.constraints["epsilon_2"] = objectives_func[2] >= epsilon2
             # Solve the new model
             model.solve(solver=pl.GUROBI_CMD(msg=0))
             pareto_front.append(

@@ -76,61 +76,7 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         ],
         dtype=object,
     )
-    # Epsilon variables to deal with absolute values
-    eps_plus = np.array(
-        [
-            [
-                [
-                    [
-                        pl.LpVariable(
-                            "eps_plus_"
-                            + str(i)
-                            + ","
-                            + str(j)
-                            + ","
-                            + str(k)
-                            + ","
-                            + str(l),
-                            lowBound=0,
-                            cat=pl.LpBinary,
-                        )
-                        for l in range(nb_days)
-                    ]
-                    for k in range(nb_projects)
-                ]
-                for j in range(nb_comp)
-            ]
-            for i in range(nb_workers)
-        ],
-        dtype=object,
-    )
-    eps_minus = np.array(
-        [
-            [
-                [
-                    [
-                        pl.LpVariable(
-                            "eps_minus_"
-                            + str(i)
-                            + ","
-                            + str(j)
-                            + ","
-                            + str(k)
-                            + ","
-                            + str(l),
-                            lowBound=0,
-                            cat=pl.LpBinary,
-                        )
-                        for l in range(nb_days)
-                    ]
-                    for k in range(nb_projects)
-                ]
-                for j in range(nb_comp)
-            ]
-            for i in range(nb_workers)
-        ],
-        dtype=object,
-    )
+
     # Matrix to store projects realization
     y = np.array(
         [
@@ -153,7 +99,7 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         ],
         dtype=object,
     )
-    variables = {"x": x, "y": y, "z": z, "eps_plus": eps_plus, "eps_minus": eps_minus}
+    variables = {"x": x, "y": y, "z": z}
     return variables
 
 
@@ -188,7 +134,8 @@ def build_problem_instance(
     gains = np.array([data["jobs"][i]["gain"] for i in range(nb_projects)])
     # Penalty vector
     penalties = np.array([data["jobs"][i]["daily_penalty"] for i in range(nb_projects)])
-
+    # Longest project
+    k_max = np.argmax(np.sum(work_matrix, axis=0))
     instance = {
         "days_off": days_off,
         "qualifications_matrix": qual_matrix,
@@ -196,6 +143,7 @@ def build_problem_instance(
         "deadlines": deadlines,
         "gains": gains,
         "penalties": penalties,
+        "longest_project": k_max,
     }
     return instance
 
@@ -220,16 +168,16 @@ def build_objective_functions(
         )
     # Number of different projects done per employee
     projects_done = np.sum(variables["z"])
-    # Work on consecutive days on the same task
-    cons_days = np.sum(
-        variables["eps_plus"][:, :, :, : nb_days - 1]
-        + variables["eps_minus"][:, :, :, : nb_days - 1]
+    # Longest project duration
+    long_proj_duration = nb_days - np.sum(
+        variables["y"][instance["longest_project"], :]
     )
     objectives = {
         "profit": profit.to_dict(),
         "projects_done": projects_done.to_dict(),
-        "cons_days": cons_days.to_dict(),
+        "long_proj_duration": long_proj_duration.to_dict(),
     }
+    # Add the profit to the model
     model += profit, "objective_func"
     return model, objectives
 
@@ -314,17 +262,4 @@ def add_constraints(
                 )
                 * variables["x"][i, :, k, :]
             ) <= variables["z"][i, k], "participation_" + str(i) + "," + str(k)
-
-    # Absolute values
-    for i in range(nb_workers):
-        for j in range(nb_comp):
-            for k in range(nb_projects):
-                for l in range(nb_days - 1):
-                    model += (
-                        variables["eps_plus"][i, j, k, l]
-                        - variables["eps_minus"][i, j, k, l]
-                        == variables["x"][i, j, k, l + 1] - variables["x"][i, j, k, l],
-                        "abs_" + str(i) + "," + str(j) + "," + str(k) + "," + str(l),
-                    )
-
     return model
