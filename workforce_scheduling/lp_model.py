@@ -1,8 +1,6 @@
 import numpy as np
 import pulp as pl
 
-# Small constant to avoid divisions by 0
-DELTA = 0.001
 # Small constant for strict inequalities
 EPSILON = 0.001
 
@@ -136,6 +134,8 @@ def build_problem_instance(
     penalties = np.array([data["jobs"][i]["daily_penalty"] for i in range(nb_projects)])
     # Longest project
     k_max = np.argmax(np.sum(work_matrix, axis=0))
+    # Big constant for the constraints
+    big_constant = 2 * np.sum(work_matrix)
     instance = {
         "days_off": days_off,
         "qualifications_matrix": qual_matrix,
@@ -144,6 +144,7 @@ def build_problem_instance(
         "gains": gains,
         "penalties": penalties,
         "longest_project": k_max,
+        "big_constant": big_constant,
     }
     return instance
 
@@ -178,7 +179,7 @@ def build_objective_functions(
         "long_proj_duration": long_proj_duration.to_dict(),
     }
     # Add the profit to the model
-    model += profit, "objective_func"
+    model.objective = profit
     return model, objectives
 
 
@@ -251,15 +252,21 @@ def add_constraints(
             ) + "," + str(
                 d
             )
+            model += np.sum(variables["x"][:, :, :, :d]) / np.sum(
+                instance["work_matrix"][k, :]
+            ) + EPSILON - variables["y"][k, d] >= 0, "project_not_done_" + str(
+                k
+            ) + "," + str(
+                d
+            )
 
     # An employee participates in a project if he makes at least one task of the project
     for i in range(nb_workers):
         for k in range(nb_projects):
-            model += np.sum(
-                np.dot(
-                    (1 / (DELTA + instance["work_matrix"][k, :])).reshape((nb_comp, 1)),
-                    np.ones((1, nb_days)),
-                )
-                * variables["x"][i, :, k, :]
+            model += 1 / instance["big_constant"] * np.sum(
+                variables["x"][i, :, k, :]
             ) <= variables["z"][i, k], "participation_" + str(i) + "," + str(k)
+            model += np.sum(variables["x"][i, :, k, :]) >= variables["z"][
+                i, k
+            ], "not_participation_" + str(i) + "," + str(k)
     return model

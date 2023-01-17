@@ -39,9 +39,7 @@ def main(args):
         model=model, objectives=objectives, dimensions=dimensions
     )
     # Store the results in a dataframe
-    pareto_df = pd.DataFrame(
-        data=pareto_front, columns=["profit", "projects_done", "cons_days"]
-    )
+    pareto_df = pd.DataFrame(data=pareto_front, columns=list(objectives.keys()))
     # Remove duplicates
     pareto_df = pareto_df.drop_duplicates()
     # Save to csv
