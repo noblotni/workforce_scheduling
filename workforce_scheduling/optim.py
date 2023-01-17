@@ -7,9 +7,6 @@ import numpy as np
 # 1 :  projects_done
 # 2 :  cons_days
 
-NB_EPS1 = 20
-NB_EPS2 = 20
-
 
 def epsilon_constraints(model: pl.LpProblem, objectives: dict, dimensions: dict):
     """Apply the epsilon constraints method on the model."""
@@ -26,7 +23,8 @@ def epsilon_constraints(model: pl.LpProblem, objectives: dict, dimensions: dict)
             [
                 (var_dict[d["name"]], d["value"])
                 for d in objectives["long_proj_duration"]
-            ]
+            ],
+            constant=dimensions["nb_days"],
         ),
     ]
     # Optimize the first objective function
