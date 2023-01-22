@@ -22,31 +22,23 @@ def main(args):
     print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
         data = json.load(file)
-    model, objectives, dimensions = create_lp_model(data)
-    model_json = {
-        "constraints": model.to_dict(),
-        "objectives": objectives,
-        "dimensions": dimensions,
-    }
+    model, objectives_func, dimensions = create_lp_model(data)
     logging.info("Model created")
-    if not (MODELS_PATH.exists()):
-        MODELS_PATH.mkdir()
-    with open(
-        MODELS_PATH / "{}_model.json".format(args.data_path.name.split(".")[0]), "w"
-    ) as file:
-        json.dump(model_json, file)
-    logging.info("Model saved")
+    logging.info("Look for solutions")
     pareto_front = epsilon_constraints(
-        model=model, objectives=objectives, dimensions=dimensions
+        model=model, objectives_func=objectives_func, dimensions=dimensions
     )
     # Store the results in a dataframe
-    pareto_df = pd.DataFrame(data=pareto_front, columns=list(objectives.keys()))
+    pareto_df = pd.DataFrame(data=pareto_front, columns=list(objectives_func.keys()))
     # Remove duplicates
     pareto_df = pareto_df.drop_duplicates()
     # Save to csv
+    if not MODELS_PATH.exists():
+        MODELS_PATH.mkdir()
     pareto_df.to_csv(
         Path("./models/{}_pareto.csv".format(args.data_path.name.split(".")[0]))
     )
+    logging.info("Pareto front saved")
 
 
 if __name__ == "__main__":

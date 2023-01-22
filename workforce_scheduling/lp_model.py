@@ -86,7 +86,7 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         ],
         dtype=object,
     )
-    # Matrix to store participation of workers in the projects
+    # Matrix to store the participation of an employe in a project
     z = np.array(
         [
             [
@@ -97,7 +97,21 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         ],
         dtype=object,
     )
-    variables = {"x": x, "y": y, "z": z}
+    # Maximum number of different projects done by an employee
+    max_nb_proj_done = pl.LpVariable(
+        "max_nb_proj_done", lowBound=0, upBound=nb_projects, cat=pl.LpInteger
+    )
+    # Duration of the longest project
+    long_proj_duration = pl.LpVariable(
+        "long_proj_duration", lowBound=0, upBound=nb_days, cat=pl.LpInteger
+    )
+    variables = {
+        "x": x,
+        "y": y,
+        "z": z,
+        "max_nb_proj_done": max_nb_proj_done,
+        "long_proj_duration": long_proj_duration,
+    }
     return variables
 
 
@@ -132,8 +146,6 @@ def build_problem_instance(
     gains = np.array([data["jobs"][i]["gain"] for i in range(nb_projects)])
     # Penalty vector
     penalties = np.array([data["jobs"][i]["daily_penalty"] for i in range(nb_projects)])
-    # Longest project
-    k_max = np.argmax(np.sum(work_matrix, axis=0))
     # Big constant for the constraints
     big_constant = 2 * np.sum(work_matrix)
     instance = {
@@ -143,7 +155,6 @@ def build_problem_instance(
         "deadlines": deadlines,
         "gains": gains,
         "penalties": penalties,
-        "longest_project": k_max,
         "big_constant": big_constant,
     }
     return instance
@@ -160,23 +171,28 @@ def build_objective_functions(
     # Profit of the company
     profit = None
     for k in range(nb_projects):
-        profit += instance["gains"][k] * variables["y"][k, nb_days - 1] + instance[
+        profit += instance["gains"][k] * variables["y"][k, nb_days - 1] - instance[
             "penalties"
         ][k] * (
             nb_days
             - instance["deadlines"][k]
-            - np.sum(variables["y"][k, nb_days - instance["deadlines"][k] - 1 :])
+            - pl.lpSum(
+                list(
+                    variables["y"][
+                        k, nb_days - instance["deadlines"][k] - 1 :
+                    ].flatten()
+                )
+            )
         )
-    # Number of different projects done per employee
-    projects_done = np.sum(variables["z"])
+    # Maximum number of different projects done by an employee
+    max_nb_proj_done = variables["max_nb_proj_done"]
+
     # Longest project duration
-    long_proj_duration = nb_days - np.sum(
-        variables["y"][instance["longest_project"], :]
-    )
+    long_proj_duration = variables["long_proj_duration"]
     objectives = {
-        "profit": profit.to_dict(),
-        "projects_done": projects_done.to_dict(),
-        "long_proj_duration": long_proj_duration.to_dict(),
+        "profit": profit,
+        "projects_done": max_nb_proj_done,
+        "long_proj_duration": long_proj_duration,
     }
     # Add the profit to the model
     model.objective = profit
@@ -184,7 +200,7 @@ def build_objective_functions(
 
 
 def add_constraints(
-    model,
+    model: pl.LpProblem,
     variables: dict,
     instance: dict,
     nb_days: int,
@@ -274,7 +290,20 @@ def add_constraints(
                     ).flatten()
                 )
             ) <= variables["z"][i, k], "participation_" + str(i) + "," + str(k)
-            model += np.sum(variables["x"][i, :, k, :]) >= variables["z"][
-                i, k
-            ], "not_participation_" + str(i) + "," + str(k)
+            model += pl.lpSum(list(variables["x"][i, :, k, :].flatten())) >= variables[
+                "z"
+            ][i, k], "not_participation_" + str(i) + "," + str(k)
+
+    # max_nb_proj_done is the maximum number of projects done by an employee
+    for i in range(nb_workers):
+        model += (
+            pl.lpSum(list(variables["z"][i, :].flatten()))
+            <= variables["max_nb_proj_done"]
+        )
+    # long_proj_duration is the duration of the longest project
+    for k in range(nb_projects):
+        model += (
+            nb_days - pl.lpSum(list(variables["y"][k, :].flatten()))
+            <= variables["long_proj_duration"]
+        )
     return model
