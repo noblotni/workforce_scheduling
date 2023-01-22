@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "workforce-scheduling"
+version = "0.1.0"
+description = "A package to make the schedule of a company with many projects to achieve in a given time horizon."
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "workforce_scheduling"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+PuLP = "^2.7.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
