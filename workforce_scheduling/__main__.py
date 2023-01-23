@@ -7,7 +7,6 @@ from pathlib import Path
 import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
-import pulp as pl
 
 logging.basicConfig(level=logging.INFO)
 
