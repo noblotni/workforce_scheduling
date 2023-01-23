@@ -25,7 +25,10 @@ def main(args):
     logging.info("Model created")
     logging.info("Look for solutions")
     pareto_front = epsilon_constraints(
-        model=model, objectives_func=objectives_func, dimensions=dimensions
+        model=model,
+        objectives_func=objectives_func,
+        dimensions=dimensions,
+        nb_processes=args.nb_processes,
     )
     # Store the results in a dataframe
     pareto_df = pd.DataFrame(data=pareto_front, columns=list(objectives_func.keys()))
@@ -44,6 +47,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Workforce scheduling")
     parser.add_argument(
         "data_path", help="Path to the data file. Must be a json file.", type=Path
+    )
+    parser.add_argument(
+        "--nb-processes",
+        help="Number of processes for the solution search. (default: 2)",
+        type=int,
+        default=2,
     )
     args = parser.parse_args()
 

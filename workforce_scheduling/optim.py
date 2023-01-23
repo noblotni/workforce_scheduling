@@ -7,11 +7,25 @@ import multiprocessing as mp
 logging.basicConfig(level=logging.INFO)
 
 
-def epsilon_constraints(model: pl.LpProblem, objectives_func: dict, dimensions: dict):
+def epsilon_constraints(
+    model: pl.LpProblem, objectives_func: dict, dimensions: dict, nb_processes: int
+):
+    """ "Apply the epsilon constraints method on the model.
+
+    Args:
+        - model (pl.LpProblem): linear programming model
+        - objectives_func (dict): objective functions
+        - dimensions (dict): dimensions of the problem
+        - nb_processes (int): Number of processes to run in parallel during
+            the solutions search
+
+    Returns:
+        - pareto_front : Pareto surface
+    """
     # Init epsilon values
     eps1_values = np.arange(0, dimensions["nb_projects"] + 1)
     eps2_values = np.arange(0, dimensions["nb_days"] + 1)
-    with mp.Pool(processes=4) as pool:
+    with mp.Pool(processes=nb_processes) as pool:
         pareto_front = pool.starmap(
             find_pareto,
             [(model, objectives_func, i, j) for i in eps1_values for j in eps2_values],
@@ -25,7 +39,7 @@ def find_pareto(
     epsilon1: int,
     epsilon2: int,
 ):
-    """Apply the epsilon constraints method on the model.
+    """Look for one solution on the Pareto surface.
 
     The function optimizes the profit to find solutions on the Pareto surface.
     Two epsilon-constraints are added on the second and third objective functions
@@ -42,8 +56,9 @@ def find_pareto(
 
     Returns:
         - solution (Tuple[float, int, int]): one solution on the Pareto surface
-
     """
+    # Reset the model name
+    model.name = "workforce_scheduling{},{}".format(epsilon1, epsilon2)
     # Reset the status
     model.status = pl.LpStatusNotSolved
     # Add the epsilon constraints
