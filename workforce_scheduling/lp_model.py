@@ -263,20 +263,14 @@ def add_constraints(
     # A project is over only if all the tasks are done
     for k in range(nb_projects):
         for d in range(nb_days):
-            model += pl.lpSum(
+            model += 1 / instance["big_constant"] * (
+                pl.lpSum(list(variables["x"][:, :, k, : d + 1].flatten()))
+                - np.sum(instance["work_matrix"][k, :])
+                + EPSILON
+            ) <= variables["y"][k, d], "project_done_" + str(k) + "," + str(d)
+            model += 1 / np.sum(instance["work_matrix"][k, :]) * pl.lpSum(
                 list(variables["x"][:, :, k, : d + 1].flatten())
-            ) - np.sum(instance["work_matrix"][k, :]) + EPSILON <= variables["y"][
-                k, d
-            ], "project_done_" + str(
-                k
-            ) + "," + str(
-                d
-            )
-            model += pl.lpSum(
-                list(variables["x"][:, :, k, : d + 1].flatten())
-            ) / np.sum(instance["work_matrix"][k, :]) + EPSILON - variables["y"][
-                k, d
-            ] >= 0, "project_not_done_" + str(
+            ) + EPSILON >= variables["y"][k, d], "project_not_done_" + str(
                 k
             ) + "," + str(
                 d

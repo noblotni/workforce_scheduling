@@ -7,6 +7,11 @@ from pathlib import Path
 import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
+<<<<<<< HEAD
+=======
+from workforce_scheduling.utils import get_schedule_from_sol
+from workforce_scheduling.plot import plot_schedule
+>>>>>>> b66fefa (Correct constraints.)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -48,6 +53,13 @@ def main(args):
         args.output_folder.mkdir()
     pareto_df.to_csv(args.output_folder / ("{}_pareto.csv".format(filename)))
     logging.info("Pareto front saved")
+
+
+def test_plot():
+    x = get_schedule_from_sol(
+        Path("./data/toy_instance/Workforce_scheduling36-pulp.sol")
+    )
+    plot_schedule(x)
 
 
 if __name__ == "__main__":
