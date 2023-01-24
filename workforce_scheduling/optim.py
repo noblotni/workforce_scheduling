@@ -99,6 +99,11 @@ def find_pareto(
     )
     logging.info("Add tuple {} to the Pareto front".format(solution))
     if solution[0]:
-        save_sol(model=model, variables_dict=variables_dict, dimensions=dimensions)
+        save_sol(
+            model=model,
+            variables_dict=variables_dict,
+            dimensions=dimensions,
+            solution=solution,
+        )
 
     return solution
