@@ -3,6 +3,22 @@ from gurobipy import gurobipy, GRB, quicksum
 from tqdm import tqdm
 
 
+VALIDATED = "validated"
+REFUSED = "refused"
+UNKOWN = "unknown"
+
+PAST_CONSTRAINT = "PastConstr"
+NORM_CONSTRAINT = "NormalisationConstr"
+RANK_CONSTRAINT = "rankConstr"
+
+DIR_MIN_RANK = "min_rank"
+DIR_MAX_RANK = "max_rank"
+ORDERED_CATEGORIES = [VALIDATED, UNKOWN, REFUSED]
+
+W_LOWER_BOUND = 0
+W_UPPER_BOUND = 1
+
+
 def addition_constraints(model: gurobipy.Model, past_solutions: np.ndarray, epsilon: float = 0.0):
     """
     MAJ d'un modèle Gurobi (model) en introduisant des contraintes liées aux préférences sur les solutions passés
@@ -13,7 +29,7 @@ def addition_constraints(model: gurobipy.Model, past_solutions: np.ndarray, epsi
 
     # Définition des poids
     W = {
-        i : new_model.addVar(vtype = GRB.CONTINUOUS, lb=0, ub=1, name = f'w{i}') 
+        i : new_model.addVar(vtype = GRB.CONTINUOUS, lb=W_LOWER_BOUND, ub=W_UPPER_BOUND, name = f'w{i}') 
         for i in range(1, problem_dim + 1)
     }
 
@@ -30,17 +46,67 @@ def addition_constraints(model: gurobipy.Model, past_solutions: np.ndarray, epsi
             >= solutions_line_expression[i + 1] + epsilon
             for i in range(1, len(past_solutions))
         ),
-        name="PastCondition",
+        name=PAST_CONSTRAINT,
     )
 
     # Contrainte Normalisation
     new_model.addConstr(
         quicksum(W.values()) == 1., 
-        name="Normalisation"
+        name=NORM_CONSTRAINT
     )
 
     return new_model, W, solutions_line_expression
 
+
+def add_past_constraints_from_categories(model, past_solutions: dict, epsilon: float = 0.0):
+    """
+    Add constraints to a gurobi model given past ranked solutions ordered in 3 categories : validated, refused, unkown.
+    Generates constraints for each combination of 2 solutions in different categories
+    Args:
+        model: guroby model
+        past_solutions: dict(str list) in the format {"validated": [], "refused": [], "unkown": []}
+        epsilon: for strict comparison
+    """
+    new_model = model.copy()
+    
+    assert past_solutions.get(VALIDATED, None) is not None
+    problem_dim = len(past_solutions[VALIDATED][0])
+
+    # Définition des poids
+    W = {
+        i : new_model.addVar(vtype = GRB.CONTINUOUS, lb=W_LOWER_BOUND, ub=W_UPPER_BOUND, name = f'w{i}') 
+        for i in range(1, problem_dim + 1)
+    }
+
+    # solutions_line_expression : Dict[int, LinExpr]. Expressions linéaires de la fonction de préf pour chaque solution
+    solutions_line_expression = {
+        key: {
+            l+1 : quicksum([W[i+1]*sols[l][i] for i in range(problem_dim)])
+            for l in range(len(sols))
+        }
+        for key, sols in past_solutions.items()
+    }
+
+    # Contraintes sur past : Le solution i est au moins aussi bien que le solution i + 1
+    from itertools import combinations
+
+    for sup_cat, low_cat in combinations(ORDERED_CATEGORIES, 2):
+        new_model.addConstrs(
+            (
+                sup_line_exp >= low_line_exp + epsilon
+                for sup_line_exp in solutions_line_expression[sup_cat]
+                for low_line_exp in solutions_line_expression[low_cat]
+            ),
+            name=PAST_CONSTRAINT
+        )
+
+    # Contrainte Normalisation
+    new_model.addConstr(
+        quicksum(W.values()) == 1., 
+        name=NORM_CONSTRAINT
+    )
+    
+    return new_model, W, solutions_line_expression
 
 def get_minrank_constraints(
     model: gurobipy.Model,
@@ -59,7 +125,7 @@ def get_minrank_constraints(
             for i in range(1, len(solutions_line_expression)+1)
             if i != solution_idx
         ), 
-        name="rankCondition"
+        name=RANK_CONSTRAINT
     )
     model.update()
     return model
@@ -83,7 +149,7 @@ def get_maxrank_constraints(
             for i in range(1, len(solutions_line_expression)+1)
             if i != solution_idx
         ), 
-        name="rankCondition"
+        name=RANK_CONSTRAINT
     )
     model.update()
     return model
@@ -94,7 +160,7 @@ def get_optimized_model(
     W: dict, 
     possible_solutions: np.ndarray,
     solution_idx: int = 0,
-    direction: str = "minrank",
+    direction: str = DIR_MIN_RANK,
     M: int = 10,
     epsilon: float = 0.0
 ):
@@ -121,7 +187,7 @@ def get_optimized_model(
     }
 
 
-    if direction == "minrank":
+    if direction == DIR_MIN_RANK:
         get_minrank_constraints(model, solutions_line_expression, solution_idx, X, M, epsilon)
     else:
         get_maxrank_constraints(model, solutions_line_expression, solution_idx, X, M, epsilon)
@@ -139,7 +205,7 @@ def get_rank_per_solution(
     past: np.ndarray, 
     M: int = 10,
     epsilon: float = 0.0,
-    direction: str = "minrank"
+    direction: str = DIR_MIN_RANK
 ):
     """
     Comparaison de solutions étant donné les contraintes f(a) − f(i) + M.xi > epsilon où a est l'index de la solution comparée
@@ -156,6 +222,7 @@ def get_rank_per_solution(
         l'index des solutions mieux classés ainsi que les poids W pour le modèle concerné
     """
     min_rank_per_solution = {}
+
     for idx in tqdm(range(len(solutions_to_compare)), desc=f"calculating {direction}"):
         
         # Create model and past constraints
@@ -171,15 +238,14 @@ def get_rank_per_solution(
             i for i in set(range(1, len(solutions_to_compare)+1)) - {idx+1}
             if model.getVarByName(f"X{i}").X > 0
         ]
-        W = [model.getVarByName(f"w{i}").X for i in range(1, len(solutions_to_compare[0])+1)]
         
         # Format output
-        
         min_rank_per_solution[idx] = {
-            direction: len(better_solutions)+1 if direction=="minrank" else len(solutions_to_compare)-len(better_solutions), 
-            "better_solutions": better_solutions,
-            "w" : W
+            direction: len(better_solutions)+1 if direction==DIR_MIN_RANK else len(solutions_to_compare)-len(better_solutions), 
+            "better_ranked_solutions": better_solutions,
+            "w" : [model.getVarByName(f"w{i}").X for i in range(1, len(solutions_to_compare[0])+1)]
         }
+
     return min_rank_per_solution
 
 
@@ -205,18 +271,18 @@ def partition(
         - response dict(solution_idx, dict(result)) avec les solutions retenues, refusées et ignorées.
     """
     
-    min_ranks = get_rank_per_solution(possible_solutions, past_solutions, M, epsilon, direction="minrank")
-    max_ranks = get_rank_per_solution(possible_solutions, past_solutions, M, epsilon, direction="maxrank")
-    solutions_retenus = [i for i in range(len(possible_solutions)) if max_ranks[i]["maxrank"] < accepted_worse_rank]
-    solutions_refuses = [i for i in range(len(possible_solutions)) if min_ranks[i]["minrank"] > refused_best_rank]
+    min_ranks = get_rank_per_solution(possible_solutions, past_solutions, M, epsilon, direction=DIR_MIN_RANK)
+    max_ranks = get_rank_per_solution(possible_solutions, past_solutions, M, epsilon, direction=DIR_MAX_RANK)
+    solutions_retenus = [i for i in range(len(possible_solutions)) if max_ranks[i][DIR_MAX_RANK] < accepted_worse_rank]
+    solutions_refuses = [i for i in range(len(possible_solutions)) if min_ranks[i][DIR_MIN_RANK] > refused_best_rank]
     others = [i for i in range(len(possible_solutions)) if (i not in solutions_refuses) and (i not in solutions_retenus)]
     min_max_ranks = {
-        i: (min_ranks[i]["minrank"], max_ranks[i]["maxrank"])
+        i: (min_ranks[i][DIR_MIN_RANK], max_ranks[i][DIR_MAX_RANK])
         for i in range(len(possible_solutions))
     }
     return {
         "paires_min_max": min_max_ranks,
-        "solutions_retenus": solutions_retenus, 
-        "solutions_refuses": solutions_refuses, 
-        "others": others
+        "validated": solutions_retenus, 
+        "refused": solutions_refuses, 
+        "unkown": others
     }
