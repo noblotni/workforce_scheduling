@@ -12,8 +12,8 @@ logging.basicConfig(level=logging.INFO)
 
 # Data directory
 DATA_PATH = Path("./data")
-# Models directory
-MODELS_PATH = Path("./models")
+# Solved directory
+SOLVED_PATH = Path("./solved")
 
 
 def main(args):
@@ -33,17 +33,20 @@ def main(args):
         dimensions=dimensions,
         nb_processes=args.nb_processes,
         nb_threads=args.gurobi_threads,
+        output_folder=args.output_folder,
     )
     # Store the results in a dataframe
-    pareto_df = pd.DataFrame(data=pareto_front, columns=list(objectives_func.keys()))
+    pareto_df = pd.DataFrame(
+        data=pareto_front, columns=list(objectives_func.keys()) + ["path"]
+    )
     # Remove duplicates
     pareto_df = pareto_df.drop_duplicates()
-    # Remove (None, None, None) solution
-    pareto_df.drop([0], inplace=True)
+    # Remove (None, None, None) solutions
+    pareto_df = pareto_df.dropna()
     # Save to csv
-    if not MODELS_PATH.exists():
-        MODELS_PATH.mkdir()
-    pareto_df.to_csv(Path("./models/{}_pareto.csv".format(filename)))
+    if not args.output_folder.exists():
+        args.output_folder.mkdir()
+    pareto_df.to_csv(args.output_folder / ("{}_pareto.csv".format(filename)))
     logging.info("Pareto front saved")
 
 
@@ -64,9 +67,17 @@ if __name__ == "__main__":
         type=int,
         default=2,
     )
+    parser.add_argument(
+        "--output-folder",
+        "-o",
+        help="Folder where to save the output files. (default: ./data_filename)",
+        type=Path,
+        default=SOLVED_PATH,
+    )
     args = parser.parse_args()
-
     if not re.search(r"\.json$", str(args.data_path)):
         logging.error("data-path must be a JSON file.")
     else:
+        # Add filename to output folder
+        args.output_folder /= args.data_path.name.split(".")[0]
         main(args)

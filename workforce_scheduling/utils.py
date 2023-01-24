@@ -3,11 +3,9 @@ import numpy as np
 from pathlib import Path
 import pulp as pl
 
-MODELS_PATH = Path("./models")
-
 
 def save_sol(
-    model: pl.LpProblem, variables_dict: dict, dimensions: dict, solution: tuple
+    output_folder: Path, model: pl.LpProblem, variables_dict: dict, dimensions: dict
 ):
     """Save solution to a .npz file"""
     x = np.array(
@@ -25,4 +23,6 @@ def save_sol(
             for i in range(dimensions["nb_workers"])
         ]
     )
-    np.savez_compressed(MODELS_PATH / (model.name + ".npz"), x, np.array(solution))
+    if not output_folder.exists():
+        output_folder.mkdir()
+    np.savez_compressed(output_folder / (model.name + ".npz"), x)

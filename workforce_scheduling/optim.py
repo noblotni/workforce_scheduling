@@ -1,8 +1,10 @@
 """Optimize the decision -variables."""
 import pulp as pl
 import numpy as np
+from pathlib import Path
 import logging
 import multiprocessing as mp
+
 
 from workforce_scheduling.utils import save_sol
 
@@ -19,6 +21,7 @@ def epsilon_constraints(
     dimensions: dict,
     nb_processes: int,
     nb_threads: int,
+    output_folder: Path,
 ):
     """ "Apply the epsilon constraints method on the model.
 
@@ -29,7 +32,7 @@ def epsilon_constraints(
         - nb_processes (int): Number of processes to run in parallel during
             the solutions search
         - nb_threads (int): Maximal number of threads used by Gurobi
-
+        - output_folder (Path): folder where to save the solution files
     Returns:
         - pareto_front : Pareto surface
     """
@@ -40,7 +43,7 @@ def epsilon_constraints(
         pareto_front = pool.starmap(
             find_pareto,
             [
-                (model, objectives_func, dimensions, nb_threads, i, j)
+                (output_folder, model, objectives_func, dimensions, nb_threads, i, j)
                 for i in eps1_values
                 for j in eps2_values
             ],
@@ -49,6 +52,7 @@ def epsilon_constraints(
 
 
 def find_pareto(
+    output_folder: Path,
     model: pl.LpProblem,
     objectives_func: dict,
     dimensions: dict,
@@ -63,6 +67,7 @@ def find_pareto(
     to sample the surface.
 
     Args:
+        - output_folder (Path): folder where to save the solution files
         - model (pl.LpProblem): linear programming model
         - objectives_func (dict): objective functions
         - dimensions (dict): dimensions of the problem
@@ -75,7 +80,7 @@ def find_pareto(
         - solution (Tuple[float, int, int]): one solution on the Pareto surface
     """
     logging.info("Epsilon1 : {}, Epsilon2 : {}".format(epsilon1, epsilon2))
-    random = np.random.randint(0, 1000)
+    random = np.random.randint(0, 100000)
     # Reset the model name
     model.name = model.name + str(random)
     # Reset the status
@@ -96,14 +101,15 @@ def find_pareto(
         pl.value(model.objective),
         variables_dict["max_nb_proj_done"].varValue,
         variables_dict["long_proj_duration"].varValue,
+        output_folder / (model.name + ".npz"),
     )
     logging.info("Add tuple {} to the Pareto front".format(solution))
     if solution[0]:
         save_sol(
+            output_folder=output_folder,
             model=model,
             variables_dict=variables_dict,
             dimensions=dimensions,
-            solution=solution,
         )
 
     return solution
