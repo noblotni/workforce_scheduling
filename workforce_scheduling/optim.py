@@ -4,6 +4,8 @@ import numpy as np
 import logging
 import multiprocessing as mp
 
+from workforce_scheduling.utils import save_sol
+
 logging.basicConfig(level=logging.INFO)
 
 # Constants for GUROBI
@@ -38,7 +40,7 @@ def epsilon_constraints(
         pareto_front = pool.starmap(
             find_pareto,
             [
-                (model, objectives_func, nb_threads, i, j)
+                (model, objectives_func, dimensions, nb_threads, i, j)
                 for i in eps1_values
                 for j in eps2_values
             ],
@@ -49,6 +51,7 @@ def epsilon_constraints(
 def find_pareto(
     model: pl.LpProblem,
     objectives_func: dict,
+    dimensions: dict,
     nb_threads: int,
     epsilon1: int,
     epsilon2: int,
@@ -74,26 +77,28 @@ def find_pareto(
     logging.info("Epsilon1 : {}, Epsilon2 : {}".format(epsilon1, epsilon2))
     random = np.random.randint(0, 1000)
     # Reset the model name
-    model.name = "workforce_scheduling" + str(random)
+    model.name = model.name + str(random)
     # Reset the status
     model.status = pl.LpStatusNotSolved
-    variables = model.variablesDict()
+    variables_dict = model.variablesDict()
     # Reset variables values
-    model.assignVarsVals({name: None for name in variables.keys()})
+    model.assignVarsVals({name: None for name in variables_dict.keys()})
     # Add the epsilon constraints
     model.constraints["epsilon_1"] = objectives_func["projects_done"] <= epsilon1
     model.constraints["epsilon_2"] = objectives_func["long_proj_duration"] <= epsilon2
     # Solve the new model
     model.solve(
         solver=pl.GUROBI_CMD(
-            msg=0, timeLimit=TIME_LIMIT, threads=nb_threads, keepFiles=True
+            msg=0, timeLimit=TIME_LIMIT, threads=nb_threads, keepFiles=False
         )
     )
     solution = (
         pl.value(model.objective),
-        variables["max_nb_proj_done"].varValue,
-        variables["long_proj_duration"].varValue,
+        variables_dict["max_nb_proj_done"].varValue,
+        variables_dict["long_proj_duration"].varValue,
     )
     logging.info("Add tuple {} to the Pareto front".format(solution))
+    if solution[0]:
+        save_sol(model=model, variables_dict=variables_dict, dimensions=dimensions)
 
     return solution

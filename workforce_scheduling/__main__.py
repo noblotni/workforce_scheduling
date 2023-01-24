@@ -21,7 +21,10 @@ def main(args):
     print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
         data = json.load(file)
-    model, objectives_func, dimensions = create_lp_model(data)
+    # Extract the file name
+    filename = args.data_path.name.split(".")[0]
+    # Create the model
+    model, objectives_func, dimensions = create_lp_model(data, filename=filename)
     logging.info("Model created")
     logging.info("Look for solutions")
     pareto_front = epsilon_constraints(
@@ -40,9 +43,7 @@ def main(args):
     # Save to csv
     if not MODELS_PATH.exists():
         MODELS_PATH.mkdir()
-    pareto_df.to_csv(
-        Path("./models/{}_pareto.csv".format(args.data_path.name.split(".")[0]))
-    )
+    pareto_df.to_csv(Path("./models/{}_pareto.csv".format(filename)))
     logging.info("Pareto front saved")
 
 
