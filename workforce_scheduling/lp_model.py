@@ -5,7 +5,7 @@ import pulp as pl
 EPSILON = 0.001
 
 
-def create_lp_model(data):
+def create_lp_model(data: dict, filename: str):
     """Create the linear programming model from the data."""
     # Extract data dimensions
     nb_days = data["horizon"]
@@ -21,7 +21,7 @@ def create_lp_model(data):
         nb_days=nb_days,
     )
     # Init model as a minimization problem
-    model = pl.LpProblem(name="Workforce_scheduling", sense=pl.LpMaximize)
+    model = pl.LpProblem(name="workforce_scheduling_" + filename, sense=pl.LpMaximize)
     # Variables
     variables = create_variables(
         nb_days=nb_days, nb_workers=nb_workers, nb_projects=nb_projects, nb_comp=nb_comp

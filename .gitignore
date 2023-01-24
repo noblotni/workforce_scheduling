@@ -1,7 +1,7 @@
 # data folder
 data/
-# lp models folder
-models/
+# solution files folder
+solved/
 # experiments folder
 experiments/
 
