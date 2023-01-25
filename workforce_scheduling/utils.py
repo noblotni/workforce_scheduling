@@ -26,3 +26,10 @@ def save_sol(
     if not output_folder.exists():
         output_folder.mkdir()
     np.savez_compressed(output_folder / (model.name + ".npz"), x)
+
+
+def get_schedule_from_npz(sol_path: Path):
+    """Get the schedule from a .npz file."""
+    with np.load(sol_path) as data:
+        x = data["arr_0"]
+    return x
