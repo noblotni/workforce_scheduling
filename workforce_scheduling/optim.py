@@ -82,7 +82,7 @@ def find_pareto(
     logging.info("Epsilon1 : {}, Epsilon2 : {}".format(epsilon1, epsilon2))
     random = np.random.randint(0, 100000)
     # Reset the model name
-    model.name = model.name + str(random)
+    model.name = "workforce_scheduling" + str(random)
     # Reset the status
     model.status = pl.LpStatusNotSolved
     variables_dict = model.variablesDict()

@@ -5,7 +5,7 @@ import pulp as pl
 EPSILON = 0.001
 
 
-def create_lp_model(data: dict, filename: str):
+def create_lp_model(data: dict):
     """Create the linear programming model from the data."""
     # Extract data dimensions
     nb_days = data["horizon"]
@@ -21,7 +21,7 @@ def create_lp_model(data: dict, filename: str):
         nb_days=nb_days,
     )
     # Init model as a minimization problem
-    model = pl.LpProblem(name="workforce_scheduling_" + filename, sense=pl.LpMaximize)
+    model = pl.LpProblem(name="workforce_scheduling_", sense=pl.LpMaximize)
     # Variables
     variables = create_variables(
         nb_days=nb_days, nb_workers=nb_workers, nb_projects=nb_projects, nb_comp=nb_comp
@@ -97,6 +97,18 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         ],
         dtype=object,
     )
+    # Matrix to store project start dates
+    start = np.array(
+        [
+            [
+                pl.LpVariable(
+                    "start_" + str(i) + "," + str(j), lowBound=0, cat=pl.LpBinary
+                )
+                for j in range(nb_days)
+            ]
+            for i in range(nb_projects)
+        ]
+    )
     # Maximum number of different projects done by an employee
     max_nb_proj_done = pl.LpVariable(
         "max_nb_proj_done", lowBound=0, upBound=nb_projects, cat=pl.LpInteger
@@ -109,6 +121,7 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
         "x": x,
         "y": y,
         "z": z,
+        "start": start,
         "max_nb_proj_done": max_nb_proj_done,
         "long_proj_duration": long_proj_duration,
     }
@@ -299,7 +312,21 @@ def add_constraints(
     # long_proj_duration is the duration of the longest project
     for k in range(nb_projects):
         model += (
-            nb_days - pl.lpSum(list(variables["y"][k, :].flatten()))
+            pl.lpSum(list(variables["y"][k, :].flatten()))
+            - pl.lpSum(list(variables["start"][k, :].flatten()))
             <= variables["long_proj_duration"]
         )
+    # A project starts once someone realizes one of its tasks
+    for k in range(nb_projects):
+        for d in range(nb_days):
+            model += pl.lpSum(list(variables["x"][:, :, k, : d + 1])) >= variables[
+                "start"
+            ][k, d], "not_started_" + str(k) + "," + str(d)
+            model += (
+                1
+                / instance["big_constant"]
+                * pl.lpSum(list(variables["x"][:, :, k, : d + 1]))
+                <= variables["start"][k, d],
+                "started_" + str(k) + "," + str(d),
+            )
     return model
