@@ -70,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-folder",
         "-o",
-        help="Folder where to save the output files. (default: ./data_filename)",
+        help="Folder where to save the output files. (default: ./solved/data_filename)",
         type=Path,
         default=SOLVED_PATH,
     )
@@ -78,6 +78,8 @@ if __name__ == "__main__":
     if not re.search(r"\.json$", str(args.data_path)):
         logging.error("data-path must be a JSON file.")
     else:
+        if args.output_folder == SOLVED_PATH and not SOLVED_PATH.exists():
+            SOLVED_PATH.mkdir()
         # Add filename to output folder
         args.output_folder /= args.data_path.name.split(".")[0]
         main(args)
