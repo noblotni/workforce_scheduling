@@ -101,7 +101,7 @@ def s_score(p,s,X,L):
     #return sm
     if sm<=0.33 :
         return 0
-    elif 0.33<sm<0.66 :
+    elif 0.33<sm<=0.66 :
         return 1
     else :
         return 2

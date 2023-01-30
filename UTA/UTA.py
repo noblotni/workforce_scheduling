@@ -6,15 +6,22 @@ from gurobipy import *
 import json
 from pathlib import Path
 import pandas as pd
-from UTA.UTA_functions import Built_model_instances
-from UTA.UTA_functions import create_variables
-from UTA.UTA_functions import add_constraints
-from UTA.UTA_functions import add_objective_function
-from UTA.UTA_functions import s_score
-from UTA.UTA_functions import si_k
+from UTA_functions import Built_model_instances
+from UTA_functions import create_variables
+from UTA_functions import add_constraints
+from UTA_functions import add_objective_function
+from UTA_functions import s_score
+from UTA_functions import si_k
 
+# Data directory
+DATA_PATH = Path("./Preorder_instance.csv")
+DATA_PATH1 = Path("./medium_instance_pareto.csv")
+
+I=pd.read_csv(DATA_PATH)
+I1=I['Classe'].to_numpy()
+I0=I.drop(['Classe'], axis=1).to_numpy()
+I1=[[k,I1[k]] for k in range(len(I1))]
 EPSILON = 0.001
-
 def create_model(list_alternatives,partial_categories,EPSILON,L):
     m=Model("Preferences")
     
@@ -28,26 +35,33 @@ def create_model(list_alternatives,partial_categories,EPSILON,L):
     
     return m
 
-reference_universities = np.array([ [27.5, 30, 8, 83, 55],
-                                    [32.5, 37.5, 45, 45, 91.5],
-                                    [25, 32.5, 16, 90, 25],
-                                    [30, 35, 4, 75, 85],
-                                    [25, 32.5, 24, 100, 100],
-                                    [39, 40, 8, 100, 15] ])
 
-partial_categories=[[0,2],
-                    [1,1],
-                   [2,2],
-                   [3,2],
-                   [4,1],
-                   [5,0]]
-
-m=create_model(reference_universities,partial_categories,EPSILON,2)
+m=create_model(I0,I1,EPSILON,2)
 m.optimize()
 
 # Création de la liste, en fait on recrée la matrice sik avec les valeurs optimales
 
-X, X1 = Built_model_instances(list_alternatives=reference_universities,L=2)
+X, X1 = Built_model_instances(list_alternatives=I0,L=2)
 l=si_k(m,X,u=3)
-lo=[32.5, 37, 45, 45, 91.5] # Attention à ne pas prendre des coefficients en dehors de l'intervalle définit par min(i) et max(i) 
-print(s_score(lo,l,X,4))
+# Attention à ne pas prendre des coefficients en dehors de l'intervalle définit par min(i) et max(i) 
+#for k in range(I0.shape[0]):
+    #print(str(k)+str(s_score(I0[k],l,X,2)))
+V=pd.read_csv(DATA_PATH1)
+
+def identify_classes(instances,model,X): # On crée une fonction qui va attribuer des classes à nos instance.
+    
+    V1=instances.to_numpy()
+    V1=V1[1:]
+    V1=(V1.T[1:]).T
+
+    l=si_k(model,X,u=3)
+    g=np.zeros(len(V1))
+    for k in range(V1.shape[0]):
+        g[k]=s_score(V1[k],l,X,2)
+    Y=np.c_[V1,g]
+
+    Y=pd.DataFrame(Y,columns =['profit','projects_done','long_proj_duration','Classe'])
+    Y.to_csv('Classification_instances.csv', index=False)
+    return
+
+identify_classes(instances=V,model=m,X=X)
