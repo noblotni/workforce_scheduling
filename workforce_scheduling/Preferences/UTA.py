@@ -123,7 +123,7 @@ def identify_classes_appris(instances,model,X,cl):
     g=np.zeros(len(V1))
     Y=np.c_[V1,g]
     Y=pd.DataFrame(Y,columns =['profit','projects_done','long_proj_duration','Classe'])
-    print(cl)
+    #print(cl)
     c1=0
     c2=0
     c3=0
