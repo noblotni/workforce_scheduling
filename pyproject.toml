@@ -11,6 +11,7 @@ packages = [{include = "workforce_scheduling"}]
 python = "^3.9"
 PuLP = "^2.7.0"
 pandas = "^1.5.3"
+gurobipy = "^10.0.0"
 
 
 [build-system]
