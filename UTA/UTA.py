@@ -56,11 +56,17 @@ def identify_classes(instances,model,X): # On crée une fonction qui va attribue
 
     l=si_k(model,X,u=3)
     g=np.zeros(len(V1))
-    for k in range(V1.shape[0]):
-        g[k]=s_score(V1[k],l,X,2)
     Y=np.c_[V1,g]
-
     Y=pd.DataFrame(Y,columns =['profit','projects_done','long_proj_duration','Classe'])
+    
+    for k in range(V1.shape[0]):
+        if s_score(V1[k],l,X,2)==0 :
+            Y['Classe'][k]='Solution non acceptable'
+        elif s_score(V1[k],l,X,2)==1 :
+            Y['Classe'][k]='Solution neutre'
+        else :
+            Y['Classe'][k]='Solution satisfaisante'
+
     Y.to_csv('Classification_instances.csv', index=False)
     return
 
