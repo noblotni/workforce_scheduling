@@ -61,7 +61,7 @@ def generate_instances(
     max_vacations: int,
     max_task_duration: int,
 ):
-    instances_folder = Path("./instances_" + str(nb_instances))
+    instances_folder = Path("./instances_" + str(nb_days))
     if not instances_folder.exists():
         instances_folder.mkdir()
     instance_dict = {}
@@ -125,13 +125,33 @@ def generate_instances(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Instances generator")
-    parser.add_argument("nb_instances", type=int)
-    parser.add_argument("--nb-days", type=int, default=15)
-    parser.add_argument("--nb-skills", type=int, default=6)
-    parser.add_argument("--nb-jobs", type=int, default=8)
-    parser.add_argument("--nb-employees", type=int, default=6)
-    parser.add_argument("--max-vacations", type=int, default=3)
-    parser.add_argument("--max-task-duration", type=int, default=3)
+    parser.add_argument(
+        "nb_instances", type=int, help="Number of instances to generate."
+    )
+    parser.add_argument(
+        "--nb-days", type=int, help="Time horizon (default: 15).", default=15
+    )
+    parser.add_argument(
+        "--nb-skills", type=int, help="Number of skills (default: 6).", default=6
+    )
+    parser.add_argument(
+        "--nb-jobs", type=int, help="Number of jobs (default: 8).", default=8
+    )
+    parser.add_argument(
+        "--nb-employees", type=int, help="Number of employees (default: 6).", default=6
+    )
+    parser.add_argument(
+        "--max-vacations",
+        type=int,
+        help="Maximum number of vacations per employee (default: 3)",
+        default=3,
+    )
+    parser.add_argument(
+        "--max-task-duration",
+        type=int,
+        help="Maximum duration of a task (default: 3)",
+        default=3,
+    )
     args = parser.parse_args()
     generate_instances(
         nb_instances=args.nb_instances,
