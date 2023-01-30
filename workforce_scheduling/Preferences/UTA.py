@@ -1,7 +1,7 @@
-# Modules de base
+# Basic modules
 import numpy as np
 import matplotlib.pyplot as plt
-# Module relatif à Gurobi
+# Module related to Gurobi
 from gurobipy import *
 import json
 from pathlib import Path
@@ -25,10 +25,11 @@ I=pd.read_csv(DATA_PATH)
 I1=I['Classe'].to_numpy()
 I0=I.drop(['Classe'], axis=1).to_numpy()
 I1=[[k,I1[k]] for k in range(len(I1))]
+
 EPSILON = 0.001
 
 ############################################################################################
-######################## MODELE AVEC COEFFICIENTS NON APPRIS ###############################
+######################## MODEL WITH FIXED COEFFICIENTS #####################################
 ############################################################################################
 
 def create_model(list_alternatives,partial_categories,EPSILON,L):
@@ -49,16 +50,15 @@ def create_model(list_alternatives,partial_categories,EPSILON,L):
 m=create_model(I0,I1,EPSILON,2)
 m.optimize()
 
-# Création de la liste, en fait on recrée la matrice sik avec les valeurs optimales
+# Creation of the list, in fact we recreate the sik matrix with the optimal values
 
 X, X1 = Built_model_instances(list_alternatives=I0,L=2)
 l=si_k(m,X,u=3)
-# Attention à ne pas prendre des coefficients en dehors de l'intervalle définit par min(i) et max(i) 
-#for k in range(I0.shape[0]):
-    #print(str(k)+str(s_score(I0[k],l,X,2)))
+# Be careful not to take coefficients outside the interval defined by min(i) and max(i) 
+
 V=pd.read_csv(DATA_PATH1)
 
-def identify_classes(instances,model,X): # On crée une fonction qui va attribuer des classes à nos instance.
+def identify_classes(instances,model,X): # We create a function that will assign classes to our instances.
     
     V1=instances.to_numpy()
     V1=V1[1:]
@@ -89,7 +89,7 @@ def identify_classes(instances,model,X): # On crée une fonction qui va attribue
 identify_classes(instances=V,model=m,X=X)
 
 ############################################################################################
-######################## MODELE AVEC COEFFICIENTS APPRIS ###################################
+######################## MODELE WITH LEARNT COEFFICIENTS ###################################
 ############################################################################################
 
 
@@ -113,7 +113,7 @@ m_app.optimize()
 l=si_k(m_app,X,u=3)
 cl=get_cl(m_app,X)
 
-def identify_classes_appris(instances,model,X,cl): # On crée une fonction qui va attribuer des classes à nos instance.
+def identify_classes_appris(instances,model,X,cl):
     
     V1=instances.to_numpy()
     V1=V1[1:]
@@ -138,7 +138,6 @@ def identify_classes_appris(instances,model,X,cl): # On crée une fonction qui v
             Y['Classe'][k]='Solution satisfaisante'
             c3+=1
     #print(c1/V1.shape[0],c2/V1.shape[0],c3/V1.shape[0])
-
     Y.to_csv('Classification_instances_coeff_appris.csv', index=False)
     return
 
