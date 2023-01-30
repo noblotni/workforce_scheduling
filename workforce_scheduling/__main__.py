@@ -52,22 +52,24 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Workforce scheduling")
-    parser.add_argument(
+    subparsers = parser.add_subparsers(help="sub-commands help")
+    solve_parser = subparsers.add_parser("solve", help="solve help")
+    solve_parser.add_argument(
         "data_path", help="Path to the data file. Must be a json file.", type=Path
     )
-    parser.add_argument(
+    solve_parser.add_argument(
         "--nb-processes",
         help="Number of processes for the solution search. (default: 2)",
         type=int,
         default=2,
     )
-    parser.add_argument(
+    solve_parser.add_argument(
         "--gurobi-threads",
         help="Maximal number of threads for Gurobi. (default: 2)",
         type=int,
         default=2,
     )
-    parser.add_argument(
+    solve_parser.add_argument(
         "--output-folder",
         "-o",
         help="Folder where to save the output files. (default: ./solved/data_filename)",
