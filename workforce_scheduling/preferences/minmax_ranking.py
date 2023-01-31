@@ -1,7 +1,7 @@
 import numpy as np
 from gurobipy import gurobipy, GRB, quicksum
 from tqdm import tqdm
-
+from itertools import combinations
 
 VALIDATED = "validated"
 REFUSED = "refused"
@@ -29,7 +29,7 @@ def addition_constraints(
     problem_dim = len(past_solutions[0])
     n_solutions = len(past_solutions)
 
-    # Définition des poids
+    # Weights vector definition
     W = {
         i: new_model.addVar(
             vtype=GRB.CONTINUOUS, lb=W_LOWER_BOUND, ub=W_UPPER_BOUND, name=f"w{i}"
@@ -37,13 +37,13 @@ def addition_constraints(
         for i in range(1, problem_dim + 1)
     }
 
-    # solutions_line_expression : Dict[int, LinExpr]. Expressions linéaires de la fonction de préf pour chaque solution
+    # solutions_line_expression : Dict[int, LinExpr]. Linear expression of the preference function for each solution
     solutions_line_expression = {
         l + 1: quicksum([W[i + 1] * past_solutions[l][i] for i in range(problem_dim)])
         for l in range(n_solutions)
     }
 
-    # Contraintes sur past : Le solution i est au moins aussi bien que le solution i + 1
+    # Constraints based on preo-classified solutions : i is better than i+1
     new_model.addConstrs(
         (
             solutions_line_expression[i] >= solutions_line_expression[i + 1] + epsilon
@@ -52,7 +52,7 @@ def addition_constraints(
         name=PAST_CONSTRAINT,
     )
 
-    # Contrainte Normalisation
+    # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
 
     return new_model, W, solutions_line_expression
@@ -74,7 +74,7 @@ def add_past_constraints_from_categories(
     assert past_solutions.get(VALIDATED, None) is not None
     problem_dim = len(past_solutions[VALIDATED][0])
 
-    # Définition des poids
+    # Weights vector definition
     W = {
         i: new_model.addVar(
             vtype=GRB.CONTINUOUS, lb=W_LOWER_BOUND, ub=W_UPPER_BOUND, name=f"w{i}"
@@ -82,7 +82,7 @@ def add_past_constraints_from_categories(
         for i in range(1, problem_dim + 1)
     }
 
-    # solutions_line_expression : Dict[int, LinExpr]. Expressions linéaires de la fonction de préf pour chaque solution
+    # solutions_line_expression : Dict[int, LinExpr]. Linear expression of the preference function for each solution
     solutions_line_expression = {
         key: {
             l + 1: quicksum([W[i + 1] * sols[l][i] for i in range(problem_dim)])
@@ -91,9 +91,7 @@ def add_past_constraints_from_categories(
         for key, sols in past_solutions.items()
     }
 
-    # Contraintes sur past : Le solution i est au moins aussi bien que le solution i + 1
-    from itertools import combinations
-
+    # Constraints based on pre-categorized solutions : any unkown is better than any refused, etc
     for sup_cat, low_cat in combinations(ORDERED_CATEGORIES, 2):
         new_model.addConstrs(
             (
@@ -104,7 +102,7 @@ def add_past_constraints_from_categories(
             name=PAST_CONSTRAINT,
         )
 
-    # Contrainte Normalisation
+    # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
 
     return new_model, W, solutions_line_expression
@@ -118,7 +116,7 @@ def get_minrank_constraints(
     M: int,
     epsilon: float,
 ):
-    """Ajout des contraintes nécessaires à l'obtention du rang minimum d'un solution"""
+    """Add constraints related to the minimization of a solution's rank"""
     model.addConstrs(
         (
             solutions_line_expression[solution_idx]
@@ -142,7 +140,7 @@ def get_maxrank_constraints(
     M: int,
     epsilon: float,
 ):
-    """Ajout des contraintes nécessaires à l'obtention du rang maximum d'un solution"""
+    """Add constraints related to the maximization of a solution's rank"""
     model.addConstrs(
         (
             solutions_line_expression[i]
@@ -168,10 +166,9 @@ def get_optimized_model(
     epsilon: float = 0.0,
 ):
     """
-    Renvoie le rang minimum (meilleur rang possible) d'un solution (solution) étant donné l'ensemble des solutions disponibles (possible_solutions)
-    (il est possible d'incorporer un argument model si l'on veut éviter de redéfinir tout le modèle Gurobi)
+    Returns the minimum/maximum ranking (best/worse possible ranking) of a solution given the set of available solutions (possible_solutions)
     """
-    solution_idx += 1  # rank from 1 to n (inspired from the course, not necessary)
+    solution_idx += 1  # ranked from 1 to n (inspired from the course, not necessary)
     n_solutions = len(possible_solutions)
     problem_dim = len(W)
 
@@ -215,7 +212,10 @@ def get_rank_per_solution(
     direction: str = DIR_MIN_RANK,
 ):
     """
-    Comparaison de solutions étant donné les contraintes f(a) − f(i) + M.xi > epsilon où a est l'index de la solution comparée
+    Comparison of solutions given the constraints : 
+    * f(a) - f(i) + M.xi > epsilon (if minimization) forall i ≠ a
+    * f(i) - f(a) + M.xi > epsilon (if maximisation) forall i ≠ a
+    where a is the index of the compared solution
 
     Args:
         - solutions_to_compare: array or list of 3-dimensional scores per solution to compare
@@ -225,8 +225,8 @@ def get_rank_per_solution(
         - direction: 'minrank' or 'maxrank'
 
     Returns:
-        - min_rank_per_solution : dict(solution_idx, dict(result)) où le résultat contient le min_rank ou le max_rank,
-        l'index des solutions mieux classés ainsi que les poids W pour le modèle concerné
+        - min_rank_per_solution : dict(solution_idx, dict(result)) where the result contains the min_rank or the max_rank,
+        the index of the best ranked solutions and the weights W for the concerned model
     """
     min_rank_per_solution = {}
 
@@ -273,17 +273,17 @@ def partition(
     epsilon: float = 0.1,
 ):
     """
-    Calcul du rang minimum et maximum d'une solution, selon le poids associé à chacun des critères de comparaison
-    tel que la somme des poids est égale à 1.
+    Calculation of the minimum and maximum rank of a solution, according to the weight associated 
+    to each of the comparison criteria such that the sum of the weights is equal to 1.
 
     Args:
         - possible_solutions: array or list of 3-dimensional scores per solution to compare
         - past_solutions: ordered array or list of the 3-dimensional scores of past solutions
-        - accepted_worse_rank: rang à partir duquel on accepte une proposition (pire rang > accepted_worse_rank)
-        - refused_best_rank: rang à partir duquel on refuse une proposition (meilleur rang < refused_best_rank)
+        - accepted_worse_rank: rank from which a proposal is accepted (worst rank > accepted_worse_rank)
+        - refused_best_rank: rank from which a proposal is refused (best rank < refused_best_rank)
 
     Returns:
-        - response dict(solution_idx, dict(result)) avec les solutions retenues, refusées et ignorées.
+        - response dict(solution_idx, dict(result)) with the solutions chosen, refused and ignored.
     """
 
     min_ranks = get_rank_per_solution(
