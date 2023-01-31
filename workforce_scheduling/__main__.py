@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
+from workforce_scheduling.preferences.uta import run_uta
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,7 +17,7 @@ DATA_PATH = Path("./data")
 SOLVED_PATH = Path("./solved")
 
 
-def main(args):
+def run_solve(args):
     """Launch the workforce scheduling algorithm."""
     print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
@@ -50,12 +51,21 @@ def main(args):
     logging.info("Pareto front saved")
 
 
+def run_preferences(args):
+    if args.pref_model == "UTA":
+        run_uta(pareto_path=args.pareto_path, preorder_path=args.preorder_path)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Workforce scheduling")
     subparsers = parser.add_subparsers(help="sub-commands help")
+    # Solve subcommand
     solve_parser = subparsers.add_parser("solve", help="solve help")
     solve_parser.add_argument(
-        "data_path", help="Path to the data file. Must be a json file.", type=Path
+        "--data_path",
+        help="Path to the data file. Must be a json file.",
+        type=Path,
+        required=True,
     )
     solve_parser.add_argument(
         "--nb-processes",
@@ -76,12 +86,36 @@ if __name__ == "__main__":
         type=Path,
         default=SOLVED_PATH,
     )
+    # preferences subcommand
+    preferences_parser = subparsers.add_parser("preferences", help="preferences help")
+    preferences_parser.add_argument(
+        "--pareto-path",
+        help="Path to the calculated Pareto surface.",
+        type=Path,
+        required=True,
+    )
+    preferences_parser.add_argument(
+        "--preorder-path",
+        help="Path to the preorder on a subset of solutions.",
+        type=Path,
+        required=True,
+    )
+    preferences_parser.add_argument(
+        "--pref-model",
+        help="Preferences model to use (default: UTA)",
+        type=str,
+        default="UTA",
+    )
     args = parser.parse_args()
-    if not re.search(r"\.json$", str(args.data_path)):
-        logging.error("data-path must be a JSON file.")
-    else:
-        if args.output_folder == SOLVED_PATH and not SOLVED_PATH.exists():
-            SOLVED_PATH.mkdir()
-        # Add filename to output folder
-        args.output_folder /= args.data_path.name.split(".")[0]
-        main(args)
+    if "data_path" in vars(args).keys():
+        if not re.search(r"\.json$", str(args.data_path)):
+            logging.error("data-path must be a JSON file.")
+        else:
+            if args.output_folder == SOLVED_PATH and not SOLVED_PATH.exists():
+                SOLVED_PATH.mkdir()
+            # Add filename to output folder
+            args.output_folder /= args.data_path.name.split(".")[0]
+            run_solve(args)
+
+    elif "pareto_path" in vars(args).keys():
+        run_preferences(args)
