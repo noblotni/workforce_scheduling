@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 import logging
 import multiprocessing as mp
-
+from copy import deepcopy
 
 from workforce_scheduling.utils import save_sol
 
@@ -40,18 +40,20 @@ def epsilon_constraints(
     eps1_values = np.arange(0, dimensions["nb_projects"] + 1)
     eps2_values = np.arange(0, dimensions["nb_days"] + 1)
     with mp.Pool(processes=nb_processes) as pool:
-        pareto_front = pool.starmap(
-            find_pareto,
+        solutions = pool.starmap(
+            find_solution,
             [
                 (output_folder, model, objectives_func, dimensions, nb_threads, i, j)
                 for i in eps1_values
                 for j in eps2_values
             ],
         )
-    return pareto_front
+    # Remove non-dominated solutions
+    solutions = remove_nd_solutions(solutions)
+    return solutions
 
 
-def find_pareto(
+def find_solution(
     output_folder: Path,
     model: pl.LpProblem,
     objectives_func: dict,
@@ -60,9 +62,9 @@ def find_pareto(
     epsilon1: int,
     epsilon2: int,
 ):
-    """Look for one solution on the Pareto surface.
+    """Look for one solution.
 
-    The function optimizes the profit to find solutions on the Pareto surface.
+    The function optimizes the profit.
     Two epsilon-constraints are added on the second and third objective functions
     to sample the surface.
 
@@ -113,3 +115,25 @@ def find_pareto(
         )
 
     return solution
+
+
+def remove_nd_solutions(solutions: list):
+    """Remove non-dominated solutions.
+
+    Args:
+        solutions (list): list of solutions found
+    """
+    solutions_copy = deepcopy(solutions)
+    for solution in solutions:
+        for other_sol in solutions:
+            if (
+                solution[0]
+                and other_sol[0]
+                and (solution[0] <= other_sol[0])
+                and (solution[1] >= other_sol[1])
+                and (solution[2] >= other_sol[2])
+                and (other_sol[0:3] != solution[0:3])
+            ):
+                solutions_copy.remove(solution)
+                break
+    return solutions_copy
