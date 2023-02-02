@@ -115,7 +115,7 @@ def create_variables(nb_days: int, nb_workers: int, nb_projects: int, nb_comp: i
     )
     # Duration of the longest project
     long_proj_duration = pl.LpVariable(
-        "long_proj_duration", lowBound=0, upBound=nb_days, cat=pl.LpInteger
+        "long_proj_duration", lowBound=1, upBound=nb_days, cat=pl.LpInteger
     )
     variables = {
         "x": x,
@@ -309,7 +309,8 @@ def add_constraints(
     # long_proj_duration is the duration of the longest project
     for k in range(nb_projects):
         model += (
-            pl.lpSum(list(variables["y"][k, :].flatten()))
+            1
+            + pl.lpSum(list(variables["y"][k, :].flatten()))
             - pl.lpSum(list(variables["start"][k, :].flatten()))
             <= variables["long_proj_duration"]
         )

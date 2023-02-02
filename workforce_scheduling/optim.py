@@ -135,5 +135,8 @@ def remove_nd_solutions(solutions: list):
                 and (other_sol[0:3] != solution[0:3])
             ):
                 solutions_copy.remove(solution)
+                # Remove the solution file if it exists
+                if solution[3].exists():
+                    solution[3].unlink()
                 break
     return solutions_copy

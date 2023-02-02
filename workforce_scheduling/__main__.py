@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # Solve subcommand
     solve_parser = subparsers.add_parser("solve", help="solve help")
     solve_parser.add_argument(
-        "--data_path",
+        "--data-path",
         help="Path to the data file. Must be a json file.",
         type=Path,
         required=True,
