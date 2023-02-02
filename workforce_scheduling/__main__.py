@@ -105,7 +105,7 @@ if __name__ == "__main__":
     )
     preferences_parser.add_argument(
         "--pref-model",
-        help="Preferences model to use (default: UTA)",
+        help="Preferences model to use: UTA or k-best (default:UTA)",
         type=str,
         default="UTA",
     )
