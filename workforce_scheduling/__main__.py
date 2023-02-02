@@ -8,6 +8,7 @@ import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
 from workforce_scheduling.preferences.uta import run_uta
+from workforce_scheduling.preferences.minmax_ranking import run_kbest
 
 logging.basicConfig(level=logging.INFO)
 
@@ -54,6 +55,8 @@ def run_solve(args):
 def run_preferences(args):
     if args.pref_model == "UTA":
         run_uta(pareto_path=args.pareto_path, preorder_path=args.preorder_path)
+    elif args.pref_model == "k-best":
+        run_kbest(pareto_path=args.pareto_path, preorder_path=args.preorder_path)
 
 
 if __name__ == "__main__":

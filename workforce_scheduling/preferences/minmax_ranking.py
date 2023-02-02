@@ -1,7 +1,10 @@
+"Implement k-best ranking model."
 import numpy as np
 from gurobipy import gurobipy, GRB, quicksum
 from tqdm import tqdm
 from itertools import combinations
+from pathlib import Path
+import pandas as pd
 
 VALIDATED = "validated"
 REFUSED = "refused"
@@ -212,7 +215,7 @@ def get_rank_per_solution(
     direction: str = DIR_MIN_RANK,
 ):
     """
-    Comparison of solutions given the constraints : 
+    Comparison of solutions given the constraints :
     * f(a) - f(i) + M.xi > epsilon (if minimization) forall i ≠ a
     * f(i) - f(a) + M.xi > epsilon (if maximisation) forall i ≠ a
     where a is the index of the compared solution
@@ -273,7 +276,7 @@ def partition(
     epsilon: float = 0.1,
 ):
     """
-    Calculation of the minimum and maximum rank of a solution, according to the weight associated 
+    Calculation of the minimum and maximum rank of a solution, according to the weight associated
     to each of the comparison criteria such that the sum of the weights is equal to 1.
 
     Args:
@@ -317,3 +320,15 @@ def partition(
         "refused": solutions_refuses,
         "unkown": others,
     }
+
+
+def run_kbest(pareto_path: Path, preorder_path: Path):
+    """Run k-best ranking model."""
+    pareto_df = pd.read_csv(pareto_path)
+    preorder_df = pd.read_csv(preorder_path)
+    partition(
+        possible_solutions=pareto_df.to_numpy(),
+        past_solutions=preorder_df.to_numpy(),
+        accepted_worse_rank=10,
+        refused_best_rank=20,
+    )
