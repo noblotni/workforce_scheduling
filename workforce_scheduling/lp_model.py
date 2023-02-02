@@ -310,8 +310,8 @@ def add_constraints(
     for k in range(nb_projects):
         model += (
             1
-            + pl.lpSum(list(variables["y"][k, :].flatten()))
-            - pl.lpSum(list(variables["start"][k, :].flatten()))
+            - pl.lpSum(list(variables["y"][k, :].flatten()))
+            + pl.lpSum(list(variables["start"][k, :].flatten()))
             <= variables["long_proj_duration"]
         )
     # A project starts once someone realizes one of its tasks

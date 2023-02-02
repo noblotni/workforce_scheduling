@@ -37,8 +37,8 @@ def epsilon_constraints(
         - pareto_front : Pareto surface
     """
     # Init epsilon values
-    eps1_values = np.arange(0, dimensions["nb_projects"] + 1)
-    eps2_values = np.arange(0, dimensions["nb_days"] + 1)
+    eps1_values = np.arange(1, dimensions["nb_projects"] + 1)
+    eps2_values = np.arange(1, dimensions["nb_days"] + 1)
     with mp.Pool(processes=nb_processes) as pool:
         solutions = pool.starmap(
             find_solution,
