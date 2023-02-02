@@ -188,13 +188,10 @@ def build_objective_functions(
             "penalties"
         ][k] * (
             nb_days
+            + 1
             - instance["deadlines"][k]
             - pl.lpSum(
-                list(
-                    variables["y"][
-                        k, nb_days - instance["deadlines"][k] - 1 :
-                    ].flatten()
-                )
+                list(variables["y"][k, instance["deadlines"][k] - 1 :].flatten())
             )
         )
     # Maximum number of different projects done by an employee
