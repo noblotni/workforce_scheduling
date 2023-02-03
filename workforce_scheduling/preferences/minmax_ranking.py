@@ -1,6 +1,7 @@
 "Implement k-best ranking model."
+from typing import Union
 import numpy as np
-from gurobipy import gurobipy, GRB, quicksum
+from gurobipy import gurobipy, GRB, quicksum, Env
 from tqdm import tqdm
 from itertools import combinations
 from pathlib import Path
@@ -20,6 +21,11 @@ ORDERED_CATEGORIES = [VALIDATED, UNKOWN, REFUSED]
 
 W_LOWER_BOUND = 0
 W_UPPER_BOUND = 1
+
+
+env = Env(empty=True)
+env.setParam("OutputFlag",0)
+env.start()
 
 
 def addition_constraints(
@@ -58,7 +64,7 @@ def addition_constraints(
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
 
-    return new_model, W, solutions_line_expression
+    return new_model, W
 
 
 def add_past_constraints_from_categories(
@@ -107,8 +113,9 @@ def add_past_constraints_from_categories(
 
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
+    new_model.update()
 
-    return new_model, W, solutions_line_expression
+    return new_model, W
 
 
 def get_minrank_constraints(
@@ -209,7 +216,7 @@ def get_optimized_model(
 
 def get_rank_per_solution(
     solutions_to_compare: np.ndarray,
-    past: np.ndarray,
+    past: Union[dict, np.ndarray],
     M: int = 10,
     epsilon: float = 0.0,
     direction: str = DIR_MIN_RANK,
@@ -222,7 +229,9 @@ def get_rank_per_solution(
 
     Args:
         - solutions_to_compare: array or list of 3-dimensional scores per solution to compare
-        - past: ordered array or list of the 3-dimensional scores of past solutions
+        - past: 
+            ordered array or list of the 3-dimensional scores of past solutions
+            OR Dict[str, array] of validated / unkown / refused solutions
         - M: enough large constant to compare 2 solutions
         - epsilon: comparator
         - direction: 'minrank' or 'maxrank'
@@ -236,8 +245,14 @@ def get_rank_per_solution(
     for idx in tqdm(range(len(solutions_to_compare)), desc=f"calculating {direction}"):
 
         # Create model and past constraints
-        model = gurobipy.Model("Xtrem_Ranking")
-        model, W, solutions_line_expression = addition_constraints(model, past, epsilon)
+        model = gurobipy.Model("Xtrem_Ranking", env=env)
+        if isinstance(past, np.ndarray):
+            model, W = addition_constraints(model, past, epsilon)
+        elif isinstance(past, dict):
+            model, W = add_past_constraints_from_categories(model, past, epsilon)
+        else:
+            return None
+
         model.update()
 
         # Compare solutions
@@ -322,13 +337,18 @@ def partition(
     }
 
 
-def run_kbest(pareto_path: Path, preorder_path: Path):
+def run_kbest(
+        pareto_path: Path, 
+        preorder_path: Path,
+        accepted_worse_rank: int = 10,
+        refused_best_rank: int = 20
+        ):
     """Run k-best ranking model."""
     pareto_df = pd.read_csv(pareto_path)
     preorder_df = pd.read_csv(preorder_path)
     partition(
         possible_solutions=pareto_df.to_numpy(),
         past_solutions=preorder_df.to_numpy(),
-        accepted_worse_rank=10,
-        refused_best_rank=20,
+        accepted_worse_rank=accepted_worse_rank,
+        refused_best_rank=refused_best_rank,
     )
