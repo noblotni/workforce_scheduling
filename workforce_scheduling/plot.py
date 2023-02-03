@@ -6,16 +6,27 @@ import pandas as pd
 
 
 def plot_schedule(solution: np.ndarray):
-    schedule = np.zeros((solution.shape[0], solution.shape[3]))
+    schedule = -1 + np.zeros((solution.shape[0], solution.shape[3]))
     for i in range(schedule.shape[0]):
         for j in range(schedule.shape[1]):
             for k in range(solution.shape[2]):
                 if np.sum(solution[i, :, k, j]) > 0:
                     schedule[i, j] = k
+    colorbar_labels = ["Not working"] + [
+        "Project " + str(i) for i in range(solution.shape[2])
+    ]
     plt.imshow(schedule)
     plt.xlabel("Time (days)")
-    plt.ylabel("Employees")
-    plt.colorbar()
+    plt.xticks(
+        ticks=np.arange(0, solution.shape[3]),
+        labels=np.arange(1, solution.shape[3] + 1),
+    )
+    plt.yticks(
+        ticks=np.arange(0, solution.shape[0]),
+        labels=["Employee " + str(i) for i in range(1, solution.shape[0] + 1)],
+    )
+    cb = plt.colorbar(ticks=np.arange(-1, solution.shape[2]))
+    cb.ax.set_yticklabels(colorbar_labels)
     plt.show()
 
 
