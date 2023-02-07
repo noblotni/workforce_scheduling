@@ -60,10 +60,12 @@ def run_preferences(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Workforce scheduling")
+    parser = argparse.ArgumentParser("workforce_scheduling")
     subparsers = parser.add_subparsers(help="sub-commands help")
     # Solve subcommand
-    solve_parser = subparsers.add_parser("solve", help="solve help")
+    solve_parser = subparsers.add_parser(
+        "solve", help="Solve the optimization problem on an instance."
+    )
     solve_parser.add_argument(
         "--data-path",
         help="Path to the data file. Must be a json file.",
@@ -72,15 +74,15 @@ if __name__ == "__main__":
     )
     solve_parser.add_argument(
         "--nb-processes",
-        help="Number of processes for the solution search. (default: 2)",
+        help="Number of processes for the solution search. (default: 1)",
         type=int,
-        default=2,
+        default=1,
     )
     solve_parser.add_argument(
         "--gurobi-threads",
-        help="Maximal number of threads for Gurobi. (default: 2)",
+        help="Maximal number of threads for Gurobi. (default: 4)",
         type=int,
-        default=2,
+        default=4,
     )
     solve_parser.add_argument(
         "--output-folder",
@@ -90,7 +92,9 @@ if __name__ == "__main__":
         default=SOLVED_PATH,
     )
     # preferences subcommand
-    preferences_parser = subparsers.add_parser("preferences", help="preferences help")
+    preferences_parser = subparsers.add_parser(
+        "classify", help="Classify the solutions with a preference model."
+    )
     preferences_parser.add_argument(
         "--pareto-path",
         help="Path to the calculated Pareto surface.",
