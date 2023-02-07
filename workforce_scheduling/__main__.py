@@ -67,7 +67,7 @@ if __name__ == "__main__":
     )
     solve_parser.add_argument(
         "--data-path",
-        help="Path to the data file. Must be a json file.",
+        help="Path to the data file. Must be a json file. (Required)",
         type=Path,
         required=True,
     )

@@ -39,6 +39,7 @@ optional arguments:
 ```
 
 ### Usage of the solve subcommand
+
 Type this command to display the help:
 ```shell
 python -m workforce_scheduling solve --help
@@ -51,7 +52,7 @@ usage: workforce_scheduling solve [-h] --data-path DATA_PATH [--nb-processes NB_
 optional arguments:
   -h, --help            show this help message and exit
   --data-path DATA_PATH
-                        Path to the data file. Must be a json file.
+                        Path to the data file. Must be a json file. (Required)
   --nb-processes NB_PROCESSES
                         Number of processes for the solution search. (default: 1)
   --gurobi-threads GUROBI_THREADS
@@ -59,6 +60,39 @@ optional arguments:
   --output-folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         Folder where to save the output files. (default: ./solved/data_filename)
 ```
+
+For this command, the argument `--data-path` is required. One command usage is the following:
+
+```shell
+python -m workforce_scheduling solve --data-path=./file.json
+```
+
+You can generate random examples of instances with the generation script `generate_instances.py` in the `scripts` folder. Type  `python ./scripts/generate_instances.py` to see the help message:
+
+```
+usage: Instances generator [-h] [--nb-days NB_DAYS] [--nb-skills NB_SKILLS] [--nb-jobs NB_JOBS]
+                           [--nb-employees NB_EMPLOYEES] [--max-vacations MAX_VACATIONS]
+                           [--max-task-duration MAX_TASK_DURATION]
+                           nb_instances
+
+positional arguments:
+  nb_instances          Number of instances to generate.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --nb-days NB_DAYS     Time horizon (default: 15).
+  --nb-skills NB_SKILLS
+                        Number of skills (default: 6).
+  --nb-jobs NB_JOBS     Number of jobs (default: 8).
+  --nb-employees NB_EMPLOYEES
+                        Number of employees (default: 6).
+  --max-vacations MAX_VACATIONS
+                        Maximum number of vacations per employee (default: 3)
+  --max-task-duration MAX_TASK_DURATION
+                        Maximum duration of a task (default: 3)
+
+```
+
 ### Usage of the classify subcommand
 
 Type this command to display the help:

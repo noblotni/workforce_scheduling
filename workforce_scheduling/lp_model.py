@@ -187,9 +187,7 @@ def build_objective_functions(
         profit += instance["gains"][k] * variables["y"][k, nb_days - 1] - instance[
             "penalties"
         ][k] * (
-            nb_days
-            + 1
-            - instance["deadlines"][k]
+            (nb_days + 1 - instance["deadlines"][k]) * variables["y"][k, nb_days - 1]
             - pl.lpSum(
                 list(variables["y"][k, instance["deadlines"][k] - 1 :].flatten())
             )
