@@ -35,6 +35,7 @@ def run_solve(args):
         nb_processes=args.nb_processes,
         nb_threads=args.gurobi_threads,
         output_folder=args.output_folder,
+        timelimit=args.gurobi_timelimit,
     )
     # Store the results in a dataframe
     pareto_df = pd.DataFrame(
@@ -80,6 +81,12 @@ if __name__ == "__main__":
         help="Maximal number of threads for Gurobi. (default: 4)",
         type=int,
         default=4,
+    )
+    solve_parser.add_argument(
+        "--gurobi-timelimit",
+        help="Time limit (s) for the Gurobi solver. (default: 30)",
+        type=int,
+        default=30,
     )
     solve_parser.add_argument(
         "--output-folder",
