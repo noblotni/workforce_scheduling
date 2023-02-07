@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Constants for GUROBI
 # Time limit (sec)
-TIME_LIMIT = 200
+TIME_LIMIT = 10
 
 
 def epsilon_constraints(
@@ -96,7 +96,7 @@ def find_solution(
     # Solve the new model
     model.solve(
         solver=pl.GUROBI_CMD(
-            msg=0, timeLimit=TIME_LIMIT, threads=nb_threads, keepFiles=False
+            msg=0, threads=nb_threads, timeLimit=TIME_LIMIT, keepFiles=False
         )
     )
     solution = (
