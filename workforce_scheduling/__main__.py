@@ -8,6 +8,7 @@ import pandas as pd
 from workforce_scheduling.lp_model import create_lp_model
 from workforce_scheduling.optim import epsilon_constraints
 from workforce_scheduling.preferences.uta import run_uta
+from workforce_scheduling.preferences.minmax_ranking import run_kbest
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,7 +20,6 @@ SOLVED_PATH = Path("./solved")
 
 def run_solve(args):
     """Launch the workforce scheduling algorithm."""
-    print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
         data = json.load(file)
     # Extract the file name
@@ -40,8 +40,6 @@ def run_solve(args):
     pareto_df = pd.DataFrame(
         data=pareto_front, columns=list(objectives_func.keys()) + ["path"]
     )
-    # Remove duplicates
-    pareto_df = pareto_df.drop_duplicates()
     # Remove (None, None, None) solutions
     pareto_df = pareto_df.dropna()
     # Save to csv
@@ -54,30 +52,34 @@ def run_solve(args):
 def run_preferences(args):
     if args.pref_model == "UTA":
         run_uta(pareto_path=args.pareto_path, preorder_path=args.preorder_path)
+    elif args.pref_model == "k-best":
+        run_kbest(pareto_path=args.pareto_path, preorder_path=args.preorder_path)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Workforce scheduling")
+    parser = argparse.ArgumentParser("workforce_scheduling")
     subparsers = parser.add_subparsers(help="sub-commands help")
     # Solve subcommand
-    solve_parser = subparsers.add_parser("solve", help="solve help")
+    solve_parser = subparsers.add_parser(
+        "solve", help="Solve the optimization problem on an instance."
+    )
     solve_parser.add_argument(
-        "--data_path",
-        help="Path to the data file. Must be a json file.",
+        "--data-path",
+        help="Path to the data file. Must be a json file. (Required)",
         type=Path,
         required=True,
     )
     solve_parser.add_argument(
         "--nb-processes",
-        help="Number of processes for the solution search. (default: 2)",
+        help="Number of processes for the solution search. (default: 1)",
         type=int,
-        default=2,
+        default=1,
     )
     solve_parser.add_argument(
         "--gurobi-threads",
-        help="Maximal number of threads for Gurobi. (default: 2)",
+        help="Maximal number of threads for Gurobi. (default: 4)",
         type=int,
-        default=2,
+        default=4,
     )
     solve_parser.add_argument(
         "--output-folder",
@@ -87,7 +89,9 @@ if __name__ == "__main__":
         default=SOLVED_PATH,
     )
     # preferences subcommand
-    preferences_parser = subparsers.add_parser("preferences", help="preferences help")
+    preferences_parser = subparsers.add_parser(
+        "classify", help="Classify the solutions with a preference model."
+    )
     preferences_parser.add_argument(
         "--pareto-path",
         help="Path to the calculated Pareto surface.",
@@ -102,11 +106,12 @@ if __name__ == "__main__":
     )
     preferences_parser.add_argument(
         "--pref-model",
-        help="Preferences model to use (default: UTA)",
+        help="Preferences model to use: UTA or k-best (default:UTA)",
         type=str,
         default="UTA",
     )
     args = parser.parse_args()
+    print("WORKFORCE SCHEDULING")
     if "data_path" in vars(args).keys():
         if not re.search(r"\.json$", str(args.data_path)):
             logging.error("data-path must be a JSON file.")

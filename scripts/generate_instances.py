@@ -70,16 +70,20 @@ def generate_instances(
     for i in range(nb_instances):
         # Generate staff
         staff = []
+        qual_cover = set({})
         for j in range(nb_employees):
             employee_dict = {}
             employee_dict["name"] = "employee_" + str(j)
-            employee_dict["qualifications"] = list(
+            qualifications = list(
                 np.random.choice(
                     instance_dict["qualifications"],
                     size=np.random.randint(1, nb_skills + 1),
                     replace=False,
                 )
             )
+            employee_dict["qualifications"] = qualifications
+            # Add qualifications to the cover
+            qual_cover = qual_cover.union(set(qualifications))
 
             employee_dict["vacations"] = list(
                 np.random.choice(
@@ -89,6 +93,15 @@ def generate_instances(
                 )
             )
             staff.append(employee_dict)
+        # Check if the qualifications over all the employees
+        # cover the qualifications set otherwise add the missing
+        # qualifications to random employees
+        if qual_cover != set(instance_dict["qualifications"]):
+            for qual in instance_dict["qualifications"]:
+                if qual not in qual_cover:
+                    rand_employee = np.random.randint(0, nb_employees)
+                    staff[rand_employee]["qualifications"].append(qual)
+
         instance_dict["staff"] = staff
         # Generate jobs
         jobs = []
