@@ -40,8 +40,6 @@ def run_solve(args):
     pareto_df = pd.DataFrame(
         data=pareto_front, columns=list(objectives_func.keys()) + ["path"]
     )
-    # Remove duplicates
-    pareto_df = pareto_df.drop_duplicates()
     # Remove (None, None, None) solutions
     pareto_df = pareto_df.dropna()
     # Save to csv

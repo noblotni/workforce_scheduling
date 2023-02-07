@@ -49,7 +49,7 @@ def epsilon_constraints(
             ],
         )
     # Remove non-dominated solutions
-    solutions = remove_nd_solutions(solutions)
+    solutions = remove_nd_solutions_and_duplicates(solutions)
     return solutions
 
 
@@ -102,7 +102,7 @@ def find_solution(
     solution = (
         pl.value(model.objective),
         variables_dict["max_nb_proj_done"].varValue,
-        variables_dict["long_proj_duration"].varValue,
+        pl.value(objectives_func["long_proj_duration"]),
         output_folder / (model.name + ".npz"),
     )
     logging.info("Add tuple {} to the Pareto front".format(solution))
@@ -117,13 +117,14 @@ def find_solution(
     return solution
 
 
-def remove_nd_solutions(solutions: list):
-    """Remove non-dominated solutions.
+def remove_nd_solutions_and_duplicates(solutions: list):
+    """Remove non-dominated solutions and duplicates.
 
     Args:
         solutions (list): list of solutions found
     """
     solutions_copy = deepcopy(solutions)
+    duplicates = []
     for solution in solutions:
         for other_sol in solutions:
             if (
@@ -139,4 +140,11 @@ def remove_nd_solutions(solutions: list):
                 if solution[3].exists():
                     solution[3].unlink()
                 break
+
+        if solution[0:3] in duplicates and solution in solutions_copy:
+            solutions_copy.remove(solution)
+            if solution[3].exists():
+                solution[3].unlink()
+        else:
+            duplicates.append(solution[0:3])
     return solutions_copy
