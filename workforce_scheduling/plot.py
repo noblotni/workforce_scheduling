@@ -41,3 +41,33 @@ def plot_pareto_surface(pareto_sol: pd.DataFrame):
     figure.set_ylabel("Maximum number of projects done by an employee")
     figure.set_zlabel("Duration of the longest project")
     plt.show()
+
+
+def plot_classification(classification_df: pd.DataFrame):
+    figure = plt.figure().gca(projection="3d")
+    non_accepted = classification_df[classification_df["class"] == "Non-accepted"]
+    accepted = classification_df[classification_df["class"] == "Accepted"]
+    neutral = classification_df[classification_df["class"] == "Neutral"]
+    figure.scatter(
+        non_accepted["profit"],
+        non_accepted["projects_done"],
+        non_accepted["long_proj_duration"],
+        label="Accepted",
+        color="green",
+    )
+    figure.scatter(
+        accepted["profit"],
+        accepted["projects_done"],
+        accepted["long_proj_duration"],
+        label="Non-accepted",
+        color="red",
+    )
+    figure.scatter(
+        neutral["profit"],
+        neutral["projects_done"],
+        neutral["long_proj_duration"],
+        label="Neutral",
+        color="blue",
+    )
+    plt.legend()
+    plt.show()
