@@ -20,7 +20,6 @@ SOLVED_PATH = Path("./solved")
 
 def run_solve(args):
     """Launch the workforce scheduling algorithm."""
-    print("WORKFORCE SCHEDULING")
     with open(args.data_path, "r") as file:
         data = json.load(file)
     # Extract the file name
@@ -114,6 +113,7 @@ if __name__ == "__main__":
         default="UTA",
     )
     args = parser.parse_args()
+    print("WORKFORCE SCHEDULING")
     if "data_path" in vars(args).keys():
         if not re.search(r"\.json$", str(args.data_path)):
             logging.error("data-path must be a JSON file.")
