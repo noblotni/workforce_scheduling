@@ -93,23 +93,26 @@ def add_past_constraints_from_categories(
 
     # solutions_line_expression : Dict[int, LinExpr]. Linear expression of the preference function for each solution
     solutions_line_expression = {
-        key: {
-            l + 1: quicksum([W[i + 1] * sols[l][i] for i in range(problem_dim)])
+        key: [
+            quicksum([W[i + 1] * sols[l][i] for i in range(problem_dim)])
             for l in range(len(sols))
-        }
+        ]
         for key, sols in past_solutions.items()
     }
 
     # Constraints based on pre-categorized solutions : any unkown is better than any refused, etc
     for sup_cat, low_cat in combinations(ORDERED_CATEGORIES, 2):
+        sup_lexp = solutions_line_expression[sup_cat]
+        low_lexp = solutions_line_expression[low_cat]
         new_model.addConstrs(
             (
-                sup_line_exp >= low_line_exp + epsilon
-                for sup_line_exp in solutions_line_expression[sup_cat]
-                for low_line_exp in solutions_line_expression[low_cat]
+                (sup_lexp[i] >= low_lexp[j] + epsilon)
+                for i in range(len(sup_lexp))
+                for j in range(len(low_lexp))
             ),
-            name=PAST_CONSTRAINT,
+            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}"
         )
+    
 
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
