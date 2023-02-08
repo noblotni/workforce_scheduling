@@ -97,9 +97,7 @@ def create_model_app(list_alternatives, partial_categories):
     return model
 
 
-def identify_classes(
-    instances, model, X
-):  # We create a function that will assign classes to our instances.
+def identify_classes(instances, model, X):
     """Assign a class to solutions"""
     V1 = instances.to_numpy()
     V1 = V1[1:]
@@ -174,6 +172,8 @@ def run_uta(pareto_path: Path, preorder_path: Path):
     X, _ = uta_utils.build_model_instances(list_alternatives=list_alternatives, L=2)
     # Be careful not to take coefficients outside the interval defined by min(i) and max(i)
     pareto_df = pd.read_csv(pareto_path)
+    # Drop the path to the solutions
+    pareto_df = pareto_df.drop(["path"], axis=1)
     identify_classes(instances=pareto_df, model=model, X=X)
 
     # Model with learnt coefficients

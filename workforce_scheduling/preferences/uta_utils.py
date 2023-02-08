@@ -5,7 +5,7 @@ import gurobipy as gb
 
 def create_variables(model, list_alternatives, L):
     """Create variables for the model."""
-    # Attention Potentially add the model as input unlike the other part.
+    # Warning:  it potentially adds the model as input unlike the other part.
     # Epsilon variables to deal with absolute values
     eps_plus = np.array(
         [
@@ -133,9 +133,9 @@ def add_objective_function(model, variable):
 
 def s_score(p, s, X, L):
     x1 = []
-    for j in range(
-        len(p)
-    ):  # For X1, X1 corresponds to the value of k for the coefficient ij, j cirtère, i instance
+    for j in range(len(p)):
+        # For X1, X1 corresponds to the value of k for the coefficient ij,
+        # j criterion, i instance
         for k in range(L):
             if X[j][k] <= p[j] <= X[j][k + 1]:
                 x1.append(int(k))

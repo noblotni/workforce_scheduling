@@ -57,6 +57,8 @@ optional arguments:
                         Number of processes for the solution search. (default: 1)
   --gurobi-threads GUROBI_THREADS
                         Maximal number of threads for Gurobi. (default: 4)
+  --gurobi-timelimit GUROBI_TIMELIMIT
+                        Time limit (s) for the Gurobi solver. (default: 30)
   --output-folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         Folder where to save the output files. (default: ./solved/data_filename)
 ```

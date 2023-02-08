@@ -78,15 +78,15 @@ if __name__ == "__main__":
     )
     solve_parser.add_argument(
         "--gurobi-threads",
-        help="Maximal number of threads for Gurobi. (default: 4)",
+        help="Maximal number of threads for Gurobi. (default: None)",
         type=int,
-        default=4,
+        default=None,
     )
     solve_parser.add_argument(
         "--gurobi-timelimit",
-        help="Time limit (s) for the Gurobi solver. (default: 30)",
+        help="Time limit (s) for the Gurobi solver. (default: None)",
         type=int,
-        default=30,
+        default=None,
     )
     solve_parser.add_argument(
         "--output-folder",

@@ -24,7 +24,7 @@ W_UPPER_BOUND = 1
 
 
 env = Env(empty=True)
-env.setParam("OutputFlag",0)
+env.setParam("OutputFlag", 0)
 env.start()
 
 
@@ -110,9 +110,8 @@ def add_past_constraints_from_categories(
                 for i in range(len(sup_lexp))
                 for j in range(len(low_lexp))
             ),
-            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}"
+            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}",
         )
-    
 
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
@@ -232,7 +231,7 @@ def get_rank_per_solution(
 
     Args:
         - solutions_to_compare: array or list of 3-dimensional scores per solution to compare
-        - past: 
+        - past:
             ordered array or list of the 3-dimensional scores of past solutions
             OR Dict[str, array] of validated / unkown / refused solutions
         - M: enough large constant to compare 2 solutions
@@ -341,13 +340,15 @@ def partition(
 
 
 def run_kbest(
-        pareto_path: Path, 
-        preorder_path: Path,
-        accepted_worse_rank: int = 10,
-        refused_best_rank: int = 20
-        ):
+    pareto_path: Path,
+    preorder_path: Path,
+    accepted_worse_rank: int = 10,
+    refused_best_rank: int = 20,
+):
     """Run k-best ranking model."""
     pareto_df = pd.read_csv(pareto_path)
+    # Drop the path to the solutions
+    pareto_df = pareto_df.drop(["path"], axis=1)
     preorder_df = pd.read_csv(preorder_path)
     result = partition(
         possible_solutions=pareto_df.to_numpy(),
@@ -355,12 +356,13 @@ def run_kbest(
         accepted_worse_rank=accepted_worse_rank,
         refused_best_rank=refused_best_rank,
     )
-    result_by_solution = {
-        idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]
-    }
+    result_by_solution = {idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]}
     df_result = pareto_df.copy()
-    df_result["category"] = df_result.reset_index().reset_index().level_0.apply(
-        lambda x: result_by_solution[x]).tolist()
-    
-    return df_result
+    df_result["category"] = (
+        df_result.reset_index()
+        .reset_index()
+        .level_0.apply(lambda x: result_by_solution[x])
+        .tolist()
+    )
 
+    return df_result
