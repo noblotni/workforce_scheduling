@@ -56,9 +56,9 @@ optional arguments:
   --nb-processes NB_PROCESSES
                         Number of processes for the solution search. (default: 1)
   --gurobi-threads GUROBI_THREADS
-                        Maximal number of threads for Gurobi. (default: 4)
+                        Maximal number of threads for Gurobi. (default: None)
   --gurobi-timelimit GUROBI_TIMELIMIT
-                        Time limit (s) for the Gurobi solver. (default: 30)
+                        Time limit (s) for the Gurobi solver. (default: None)
   --output-folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         Folder where to save the output files. (default: ./solved/data_filename)
 ```
