@@ -59,7 +59,7 @@ def identify_classes(instances, model, X):
     c3 = 0
     for k in range(V1.shape[0]):
         if uta_utils.s_score(V1[k], l, X, 2) == 0:
-            Y["class"][k] = "Non-acceptable"
+            Y["class"][k] = "Non acceptable"
             c1 += 1
         elif uta_utils.s_score(V1[k], l, X, 2) == 1:
             Y["class"][k] = "Neutral"
@@ -114,7 +114,7 @@ def identify_classes(instances, model, X):
     c3 = 0
     for k in range(V1.shape[0]):
         if uta_utils.s_score(V1[k], l, X, 2) == 0:
-            Y["class"][k] = "Non-acceptable"
+            Y["class"][k] = "Non acceptable"
             c1 += 1
         elif uta_utils.s_score(V1[k], l, X, 2) == 1:
             Y["class"][k] = "Neutral"
