@@ -55,15 +55,15 @@ def plot_classification(classification_df: pd.DataFrame):
         non_accepted["profit"],
         non_accepted["projects_done"],
         non_accepted["long_proj_duration"],
-        label="Acceptable",
-        color="green",
+        label="Non acceptable",
+        color="red",
     )
     figure.scatter(
         accepted["profit"],
         accepted["projects_done"],
         accepted["long_proj_duration"],
-        label="Non acceptable",
-        color="red",
+        label="Acceptable",
+        color="green",
     )
     figure.scatter(
         neutral["profit"],
