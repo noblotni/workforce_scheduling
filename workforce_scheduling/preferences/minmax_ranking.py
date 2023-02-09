@@ -9,7 +9,7 @@ import pandas as pd
 
 VALIDATED = "validated"
 REFUSED = "refused"
-UNKOWN = "unknown"
+UNKNOWN = "unknown"
 
 PAST_CONSTRAINT = "PastConstr"
 NORM_CONSTRAINT = "NormalisationConstr"
@@ -17,7 +17,7 @@ RANK_CONSTRAINT = "rankConstr"
 
 DIR_MIN_RANK = "min_rank"
 DIR_MAX_RANK = "max_rank"
-ORDERED_CATEGORIES = [VALIDATED, UNKOWN, REFUSED]
+ORDERED_CATEGORIES = [VALIDATED, UNKNOWN, REFUSED]
 
 W_LOWER_BOUND = 0
 W_UPPER_BOUND = 1
@@ -290,7 +290,7 @@ def partition(
     past_solutions: np.ndarray,
     accepted_worse_rank: int,
     refused_best_rank: int,
-    M: int = 10,
+    M: int = 100,
     epsilon: float = 0.1,
 ):
     """
@@ -334,9 +334,9 @@ def partition(
     }
     return {
         "paires_min_max": min_max_ranks,
-        "validated": solutions_retenus,
-        "refused": solutions_refuses,
-        "unkown": others,
+        VALIDATED: solutions_retenus,
+        REFUSED: solutions_refuses,
+        UNKNOWN: others,
     }
 
 
@@ -349,9 +349,18 @@ def run_kbest(
     """Run k-best ranking model."""
     pareto_df = pd.read_csv(pareto_path)
     preorder_df = pd.read_csv(preorder_path)
-    partition(
+    result = partition(
         possible_solutions=pareto_df.to_numpy(),
         past_solutions=preorder_df.to_numpy(),
         accepted_worse_rank=accepted_worse_rank,
         refused_best_rank=refused_best_rank,
     )
+    result_by_solution = {
+        idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]
+    }
+    df_result = pareto_df.copy()
+    df_result["category"] = df_result.reset_index().reset_index().level_0.apply(
+        lambda x: result_by_solution[x]).tolist()
+    
+    return df_result
+
