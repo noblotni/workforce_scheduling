@@ -9,7 +9,7 @@ import pandas as pd
 
 VALIDATED = "validated"
 REFUSED = "refused"
-UNKOWN = "unknown"
+UNKNOWN = "unknown"
 
 PAST_CONSTRAINT = "PastConstr"
 NORM_CONSTRAINT = "NormalisationConstr"
@@ -17,7 +17,7 @@ RANK_CONSTRAINT = "rankConstr"
 
 DIR_MIN_RANK = "min_rank"
 DIR_MAX_RANK = "max_rank"
-ORDERED_CATEGORIES = [VALIDATED, UNKOWN, REFUSED]
+ORDERED_CATEGORIES = [VALIDATED, UNKNOWN, REFUSED]
 
 W_LOWER_BOUND = 0
 W_UPPER_BOUND = 1
@@ -93,23 +93,26 @@ def add_past_constraints_from_categories(
 
     # solutions_line_expression : Dict[int, LinExpr]. Linear expression of the preference function for each solution
     solutions_line_expression = {
-        key: {
-            l + 1: quicksum([W[i + 1] * sols[l][i] for i in range(problem_dim)])
+        key: [
+            quicksum([W[i + 1] * sols[l][i] for i in range(problem_dim)])
             for l in range(len(sols))
-        }
+        ]
         for key, sols in past_solutions.items()
     }
 
     # Constraints based on pre-categorized solutions : any unkown is better than any refused, etc
     for sup_cat, low_cat in combinations(ORDERED_CATEGORIES, 2):
+        sup_lexp = solutions_line_expression[sup_cat]
+        low_lexp = solutions_line_expression[low_cat]
         new_model.addConstrs(
             (
-                sup_line_exp >= low_line_exp + epsilon
-                for sup_line_exp in solutions_line_expression[sup_cat]
-                for low_line_exp in solutions_line_expression[low_cat]
+                (sup_lexp[i] >= low_lexp[j] + epsilon)
+                for i in range(len(sup_lexp))
+                for j in range(len(low_lexp))
             ),
-            name=PAST_CONSTRAINT,
+            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}"
         )
+    
 
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
@@ -287,7 +290,7 @@ def partition(
     past_solutions: np.ndarray,
     accepted_worse_rank: int,
     refused_best_rank: int,
-    M: int = 10,
+    M: int = 100,
     epsilon: float = 0.1,
 ):
     """
@@ -331,9 +334,9 @@ def partition(
     }
     return {
         "paires_min_max": min_max_ranks,
-        "validated": solutions_retenus,
-        "refused": solutions_refuses,
-        "unkown": others,
+        VALIDATED: solutions_retenus,
+        REFUSED: solutions_refuses,
+        UNKNOWN: others,
     }
 
 
@@ -346,9 +349,18 @@ def run_kbest(
     """Run k-best ranking model."""
     pareto_df = pd.read_csv(pareto_path)
     preorder_df = pd.read_csv(preorder_path)
-    partition(
+    result = partition(
         possible_solutions=pareto_df.to_numpy(),
         past_solutions=preorder_df.to_numpy(),
         accepted_worse_rank=accepted_worse_rank,
         refused_best_rank=refused_best_rank,
     )
+    result_by_solution = {
+        idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]
+    }
+    df_result = pareto_df.copy()
+    df_result["category"] = df_result.reset_index().reset_index().level_0.apply(
+        lambda x: result_by_solution[x]).tolist()
+    
+    return df_result
+
