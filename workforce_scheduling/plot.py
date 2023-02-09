@@ -47,7 +47,7 @@ def plot_pareto_surface(pareto_sol: pd.DataFrame):
 
 
 def plot_classification(classification_df: pd.DataFrame):
-    figure = plt.figure().gca(projection="3d")
+    figure = plt.figure().add_subplot(projection='3d')
     non_accepted = classification_df[classification_df["class"] == "Non-accepted"]
     accepted = classification_df[classification_df["class"] == "Accepted"]
     neutral = classification_df[classification_df["class"] == "Neutral"]
