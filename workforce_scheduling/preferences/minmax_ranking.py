@@ -339,20 +339,35 @@ def partition(
     }
 
 
+def dictify_preorder_df(preorder_df: pd.DataFrame):
+    rank_mapping = {i: ORDERED_CATEGORIES[2 - i] for i in range(3)}
+    return {
+        rank_mapping[i]: preorder_df[preorder_df["class"] == i]
+        .drop("class", axis=1)
+        .to_numpy()
+        for i in range(3)
+    }
+
+
 def run_kbest(
     pareto_path: Path,
     preorder_path: Path,
     accepted_worse_rank: int = 10,
     refused_best_rank: int = 20,
+    preorder_is_categorical: bool = True,
 ):
     """Run k-best ranking model."""
-    pareto_df = pd.read_csv(pareto_path)
-    # Drop the path to the solutions
-    pareto_df = pareto_df.drop(["path"], axis=1)
+    pareto_df = pd.read_csv(pareto_path, index_col=0)
     preorder_df = pd.read_csv(preorder_path)
+
+    preorder = (
+        dictify_preorder_df(preorder_df)
+        if preorder_is_categorical
+        else preorder_df.to_numpy()
+    )
     result = partition(
-        possible_solutions=pareto_df.to_numpy(),
-        past_solutions=preorder_df.to_numpy(),
+        possible_solutions=pareto_df.drop("path", axis=1).to_numpy(),
+        past_solutions=preorder,
         accepted_worse_rank=accepted_worse_rank,
         refused_best_rank=refused_best_rank,
     )
