@@ -115,3 +115,7 @@ optional arguments:
   --pref-model PREF_MODEL
                         Preferences model to use: UTA or k-best (default:UTA)
 ```
+
+## Demonstration
+
+A demonstration notebook is avalaible in the `example` folder.
