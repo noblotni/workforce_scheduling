@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "workforce-scheduling"
 version = "0.1.0"
-description = "A package to make the schedule of a company with many projects to achieve in a given time horizon."
+description = "A package to make the schedule of a company with many projects to achieve within a given time horizon."
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
 readme = "README.md"
@@ -12,6 +12,8 @@ python = "^3.9"
 PuLP = "^2.7.0"
 pandas = "^1.5.3"
 gurobipy = "^10.0.0"
+numpy = "^1.24.2"
+matplotlib = "^3.6.3"
 
 
 [build-system]

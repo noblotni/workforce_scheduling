@@ -10,10 +10,6 @@ from workforce_scheduling.utils import save_sol
 
 logging.basicConfig(level=logging.INFO)
 
-# Constants for GUROBI
-# Time limit (sec)
-TIME_LIMIT = 200
-
 
 def epsilon_constraints(
     model: pl.LpProblem,
@@ -22,6 +18,7 @@ def epsilon_constraints(
     nb_processes: int,
     nb_threads: int,
     output_folder: Path,
+    timelimit: int,
 ):
     """ "Apply the epsilon constraints method on the model.
 
@@ -33,8 +30,9 @@ def epsilon_constraints(
             the solutions search
         - nb_threads (int): Maximal number of threads used by Gurobi
         - output_folder (Path): folder where to save the solution files
+        - timelimit (int): time limit within which Gurobi must solve the problem
     Returns:
-        - pareto_front : Pareto surface
+        - pareto_front: Pareto surface
     """
     # Init epsilon values
     eps1_values = np.arange(1, dimensions["nb_projects"] + 1)
@@ -43,12 +41,21 @@ def epsilon_constraints(
         solutions = pool.starmap(
             find_solution,
             [
-                (output_folder, model, objectives_func, dimensions, nb_threads, i, j)
+                (
+                    output_folder,
+                    model,
+                    objectives_func,
+                    dimensions,
+                    nb_threads,
+                    timelimit,
+                    i,
+                    j,
+                )
                 for i in eps1_values
                 for j in eps2_values
             ],
         )
-    # Remove non-dominated solutions
+    # Remove non-dominated solutions and duplicates
     solutions = remove_nd_solutions_and_duplicates(solutions)
     return solutions
 
@@ -59,6 +66,7 @@ def find_solution(
     objectives_func: dict,
     dimensions: dict,
     nb_threads: int,
+    timelimit: int,
     epsilon1: int,
     epsilon2: int,
 ):
@@ -74,6 +82,7 @@ def find_solution(
         - objectives_func (dict): objective functions
         - dimensions (dict): dimensions of the problem
         - nb_threads (int): number of threads used by Gurobi
+        - timelimit (int): time limit within which Gurobi must solve the problem
         - epsilon1 (int): epsilon bound on the constraint on the
             maximum number of projects done by an employee
         - epsilon2 (int): epsilon bound on the constraint on the
@@ -96,7 +105,7 @@ def find_solution(
     # Solve the new model
     model.solve(
         solver=pl.GUROBI_CMD(
-            msg=0, timeLimit=TIME_LIMIT, threads=nb_threads, keepFiles=False
+            msg=0, threads=nb_threads, timeLimit=timelimit, keepFiles=False
         )
     )
     solution = (

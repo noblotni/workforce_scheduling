@@ -56,7 +56,9 @@ optional arguments:
   --nb-processes NB_PROCESSES
                         Number of processes for the solution search. (default: 1)
   --gurobi-threads GUROBI_THREADS
-                        Maximal number of threads for Gurobi. (default: 4)
+                        Maximal number of threads for Gurobi. (default: None)
+  --gurobi-timelimit GUROBI_TIMELIMIT
+                        Time limit (s) for the Gurobi solver. (default: None)
   --output-folder OUTPUT_FOLDER, -o OUTPUT_FOLDER
                         Folder where to save the output files. (default: ./solved/data_filename)
 ```
@@ -113,3 +115,7 @@ optional arguments:
   --pref-model PREF_MODEL
                         Preferences model to use: UTA or k-best (default:UTA)
 ```
+
+## Demonstration
+
+A demonstration notebook is avalaible in the `example` folder.

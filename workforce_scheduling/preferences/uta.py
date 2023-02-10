@@ -59,7 +59,7 @@ def identify_classes(instances, model, X):
     c3 = 0
     for k in range(V1.shape[0]):
         if uta_utils.s_score(V1[k], l, X, 2) == 0:
-            Y["class"][k] = "Non-acceptable"
+            Y["class"][k] = "Non acceptable"
             c1 += 1
         elif uta_utils.s_score(V1[k], l, X, 2) == 1:
             Y["class"][k] = "Neutral"
@@ -97,9 +97,7 @@ def create_model_app(list_alternatives, partial_categories):
     return model
 
 
-def identify_classes(
-    instances, model, X
-):  # We create a function that will assign classes to our instances.
+def identify_classes(instances, model, X):
     """Assign a class to solutions"""
     V1 = instances.to_numpy()
     V1 = V1[1:]
@@ -109,14 +107,14 @@ def identify_classes(
     g = np.zeros(len(V1))
     Y = np.c_[V1, g]
     Y = pd.DataFrame(
-        Y, columns=["profit", "projects_done", "long_proj_duration", "class"]
+        Y, columns=["profit","projects_done", "long_proj_duration", "class"]
     )
     c1 = 0
     c2 = 0
     c3 = 0
     for k in range(V1.shape[0]):
         if uta_utils.s_score(V1[k], l, X, 2) == 0:
-            Y["class"][k] = "Non-acceptable"
+            Y["class"][k] = "Non acceptable"
             c1 += 1
         elif uta_utils.s_score(V1[k], l, X, 2) == 1:
             Y["class"][k] = "Neutral"
@@ -174,6 +172,8 @@ def run_uta(pareto_path: Path, preorder_path: Path):
     X, _ = uta_utils.build_model_instances(list_alternatives=list_alternatives, L=2)
     # Be careful not to take coefficients outside the interval defined by min(i) and max(i)
     pareto_df = pd.read_csv(pareto_path)
+    pareto_df = pareto_df.drop(["path"], axis=1)
+    # Drop the path to the solutions
     identify_classes(instances=pareto_df, model=model, X=X)
 
     # Model with learnt coefficients
@@ -184,3 +184,9 @@ def run_uta(pareto_path: Path, preorder_path: Path):
     identify_classes_learnt(
         instances=pareto_df, model=model_coeffs_learnt, X=X, coeffs_learnt=coeffs_learnt
     )
+
+#path1= Path("/Users/gorceixantoine/Desktop/workforce_scheduling/example/solved_example/medium_instance/medium_instance_pareto.csv")
+#path2= Path("/Users/gorceixantoine/Desktop/workforce_scheduling/example/solved_example/medium_instance/preorder_medium_instance.csv")
+#run_uta(path1,path2)
+
+#path3 = Path("workforce_scheduling/preferences/Classification_instances.csv")

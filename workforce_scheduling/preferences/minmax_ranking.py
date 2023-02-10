@@ -24,7 +24,7 @@ W_UPPER_BOUND = 1
 
 
 env = Env(empty=True)
-env.setParam("OutputFlag",0)
+env.setParam("OutputFlag", 0)
 env.start()
 
 
@@ -110,9 +110,8 @@ def add_past_constraints_from_categories(
                 for i in range(len(sup_lexp))
                 for j in range(len(low_lexp))
             ),
-            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}"
+            name=f"{PAST_CONSTRAINT}_{sup_cat.capitalize()}_{low_cat.capitalize()}",
         )
-    
 
     # Normalisation constraint
     new_model.addConstr(quicksum(W.values()) == 1.0, name=NORM_CONSTRAINT)
@@ -232,7 +231,7 @@ def get_rank_per_solution(
 
     Args:
         - solutions_to_compare: array or list of 3-dimensional scores per solution to compare
-        - past: 
+        - past:
             ordered array or list of the 3-dimensional scores of past solutions
             OR Dict[str, array] of validated / unkown / refused solutions
         - M: enough large constant to compare 2 solutions
@@ -340,27 +339,45 @@ def partition(
     }
 
 
+def dictify_preorder_df(preorder_df: pd.DataFrame):
+    rank_mapping = {i: ORDERED_CATEGORIES[2 - i] for i in range(3)}
+    return {
+        rank_mapping[i]: preorder_df[preorder_df["class"] == i]
+        .drop("class", axis=1)
+        .to_numpy()
+        for i in range(3)
+    }
+
+
 def run_kbest(
-        pareto_path: Path, 
-        preorder_path: Path,
-        accepted_worse_rank: int = 10,
-        refused_best_rank: int = 20
-        ):
+    pareto_path: Path,
+    preorder_path: Path,
+    accepted_worse_rank: int = 10,
+    refused_best_rank: int = 20,
+    preorder_is_categorical: bool = True,
+):
     """Run k-best ranking model."""
-    pareto_df = pd.read_csv(pareto_path)
+    pareto_df = pd.read_csv(pareto_path, index_col=0)
     preorder_df = pd.read_csv(preorder_path)
+
+    preorder = (
+        dictify_preorder_df(preorder_df)
+        if preorder_is_categorical
+        else preorder_df.to_numpy()
+    )
     result = partition(
-        possible_solutions=pareto_df.to_numpy(),
-        past_solutions=preorder_df.to_numpy(),
+        possible_solutions=pareto_df.drop("path", axis=1).to_numpy(),
+        past_solutions=preorder,
         accepted_worse_rank=accepted_worse_rank,
         refused_best_rank=refused_best_rank,
     )
-    result_by_solution = {
-        idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]
-    }
+    result_by_solution = {idx: cat for cat in ORDERED_CATEGORIES for idx in result[cat]}
     df_result = pareto_df.copy()
-    df_result["category"] = df_result.reset_index().reset_index().level_0.apply(
-        lambda x: result_by_solution[x]).tolist()
-    
-    return df_result
+    df_result["category"] = (
+        df_result.reset_index()
+        .reset_index()
+        .level_0.apply(lambda x: result_by_solution[x])
+        .tolist()
+    )
 
+    return df_result

@@ -1,0 +1,49 @@
+profit,projects_done,long_proj_duration,class
+45.0,1.0,3.0,Non acceptable
+90.0,1.0,4.0,Non acceptable
+120.0,1.0,6.0,Non acceptable
+180.0,1.0,8.0,Non acceptable
+194.0,1.0,12.0,Non acceptable
+99.0,2.0,3.0,Non acceptable
+110.0,2.0,4.0,Non acceptable
+150.0,2.0,5.0,Non acceptable
+245.0,2.0,7.0,Non acceptable
+295.0,2.0,8.0,Non acceptable
+325.0,2.0,10.0,Non acceptable
+138.0,3.0,3.0,Non acceptable
+245.0,3.0,6.0,Non acceptable
+270.0,3.0,7.0,Non acceptable
+339.0,3.0,8.0,Neutral
+367.0,3.0,10.0,Neutral
+371.0,3.0,11.0,Neutral
+372.0,3.0,12.0,Neutral
+177.0,4.0,3.0,Non acceptable
+231.0,4.0,4.0,Non acceptable
+331.0,4.0,7.0,Neutral
+356.0,4.0,8.0,Neutral
+385.0,4.0,10.0,Neutral
+399.0,4.0,12.0,Neutral
+388.0,4.0,11.0,Neutral
+178.0,5.0,3.0,Neutral
+0.0,5.0,2.0,Non acceptable
+253.0,5.0,6.0,Neutral
+362.0,5.0,7.0,Neutral
+384.0,5.0,9.0,Neutral
+407.0,5.0,10.0,Neutral
+193.0,6.0,3.0,Neutral
+322.0,6.0,6.0,Neutral
+384.0,6.0,7.0,Neutral
+398.0,6.0,8.0,Neutral
+411.0,6.0,10.0,Acceptable
+199.0,7.0,3.0,Neutral
+361.0,7.0,6.0,Neutral
+399.0,7.0,7.0,Neutral
+413.0,7.0,10.0,Acceptable
+208.0,8.0,3.0,Neutral
+372.0,8.0,6.0,Neutral
+331.0,9.0,5.0,Neutral
+403.0,9.0,8.0,Acceptable
+410.0,9.0,9.0,Acceptable
+261.0,10.0,4.0,Neutral
+380.0,10.0,6.0,Acceptable
+274.0,12.0,4.0,Neutral

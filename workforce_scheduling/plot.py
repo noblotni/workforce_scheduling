@@ -31,36 +31,39 @@ def plot_schedule(solution: np.ndarray):
 
 
 def plot_pareto_surface(pareto_sol: pd.DataFrame):
-    figure = plt.figure().gca(projection="3d")
-    figure.scatter(
+    figure = plt.figure()
+    ax = figure.add_subplot(projection="3d")
+    ax.plot_trisurf(
         pareto_sol["profit"],
         pareto_sol["projects_done"],
         pareto_sol["long_proj_duration"],
+        cmap="gist_rainbow",
+        edgecolor="none",
     )
-    figure.set_xlabel("Profit")
-    figure.set_ylabel("Maximum number of projects done by an employee")
-    figure.set_zlabel("Duration of the longest project")
+    ax.set_xlabel("Profit")
+    ax.set_ylabel("NUmber of projects")
+    ax.set_zlabel("Longest project duration")
     plt.show()
 
 
 def plot_classification(classification_df: pd.DataFrame):
-    figure = plt.figure().gca(projection="3d")
-    non_accepted = classification_df[classification_df["class"] == "Non-accepted"]
-    accepted = classification_df[classification_df["class"] == "Accepted"]
+    figure = plt.figure().add_subplot(projection='3d')
+    non_accepted = classification_df[classification_df["class"] == "Non acceptable"]
+    accepted = classification_df[classification_df["class"] == "Acceptable"]
     neutral = classification_df[classification_df["class"] == "Neutral"]
     figure.scatter(
         non_accepted["profit"],
         non_accepted["projects_done"],
         non_accepted["long_proj_duration"],
-        label="Accepted",
-        color="green",
+        label="Non acceptable",
+        color="red",
     )
     figure.scatter(
         accepted["profit"],
         accepted["projects_done"],
         accepted["long_proj_duration"],
-        label="Non-accepted",
-        color="red",
+        label="Acceptable",
+        color="green",
     )
     figure.scatter(
         neutral["profit"],
